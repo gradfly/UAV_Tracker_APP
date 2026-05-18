@@ -108,16 +108,16 @@
         android:id="@+id/bluetoothButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
         android:layout_alignParentLeft="true"
+        android:layout_alignParentBottom="true"
         android:layout_margin="16dp"
-        android:text="@string/bluetooth_connect"
-        android:textColor="@color/white"
         android:background="@color/primary_color"
         android:paddingStart="24dp"
         android:paddingTop="12dp"
         android:paddingEnd="24dp"
-        android:paddingBottom="12dp"/>
+        android:paddingBottom="12dp"
+        android:text="@string/bluetooth_connect"
+        android:textColor="@color/white" />
 
     <Button
         android:id="@+id/trackingButton"

@@ -220,25 +220,24 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
     }
 
     private void toggleTracking() {
+        if (targetRect == null && !isTracking) {
+            Toast.makeText(this, "请先点击视频选择跟踪目标", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
         isTracking = !isTracking;
         trackingController.setTrackingEnabled(isTracking);
 
         if (isTracking) {
-            if (targetRect == null) {
-                Toast.makeText(this, "请先点击视频选择跟踪目标", Toast.LENGTH_SHORT).show();
-                isTracking = false;
-                trackingController.setTrackingEnabled(false);
-                return;
-            }
             trackingButton.setText(R.string.tracking_enabled);
             trackingButton.setBackgroundColor(ContextCompat.getColor(this, R.color.green));
             trackingStatus.setText(R.string.tracking_enabled);
-            startTrackingLoop();
+            startTrackingLoop(); // 确保循环在运行
         } else {
             trackingButton.setText(R.string.tracking_disabled);
             trackingButton.setBackgroundColor(ContextCompat.getColor(this, R.color.accent_color));
             trackingStatus.setText(R.string.tracking_disabled);
-            stopTrackingLoop();
+            // 不在此处停止循环，以保持视觉跟踪
             sendStopCommand();
         }
     }
@@ -286,24 +285,37 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
                 if (detection != null) {
                     android.graphics.RectF boxF = detection.boundingBox();
                     
-                    // 将检测到的框从 Bitmap 坐标映射回 View 坐标
-                    targetRect = new Rect(
-                            (int) (boxF.left / scaleX),
-                            (int) (boxF.top / scaleY),
-                            (int) (boxF.right / scaleX),
-                            (int) (boxF.bottom / scaleY)
-                    );
-
-                    targetLabel = detection.categories().get(0).categoryName();
+                    synchronized (MainActivity.this) {
+                        // 将检测到的框从 Bitmap 坐标映射回 View 坐标
+                        targetRect = new Rect(
+                                (int) (boxF.left / scaleX),
+                                (int) (boxF.top / scaleY),
+                                (int) (boxF.right / scaleX),
+                                (int) (boxF.bottom / scaleY)
+                        );
+                        targetLabel = detection.categories().get(0).categoryName();
+                    }
                     
                     runOnUiThread(() -> {
                         overlayView.setTargetRect(targetRect);
                         overlayView.setTargetName(targetLabel);
                         updateTargetMetrics();
                         Toast.makeText(this, "已锁定: " + targetLabel, Toast.LENGTH_SHORT).show();
+                        startTrackingLoop(); // 锁定后立即启动视觉跟踪循环
                     });
                 } else {
-                    runOnUiThread(() -> Toast.makeText(this, "未检测到物体", Toast.LENGTH_SHORT).show());
+                    synchronized (MainActivity.this) {
+                        targetRect = null;
+                        targetLabel = null;
+                    }
+                    runOnUiThread(() -> {
+                        overlayView.setTargetRect(null);
+                        overlayView.setTargetName("");
+                        horizontalAngle.setText("水平距离: 0 px");
+                        verticalAngle.setText("竖直距离: 0 px");
+                        distanceValue.setText("远近距离: 0.0");
+                        Toast.makeText(this, "未检测到物体，已清除锁定", Toast.LENGTH_SHORT).show();
+                    });
                 }
             });
 
@@ -343,18 +355,26 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
     }
 
     private void startTrackingLoop() {
-        stopTrackingLoop();
+        if (trackingRunnable != null) return; // 避免重复启动
+        
         lastTime = System.currentTimeMillis();
         trackingRunnable = new Runnable() {
             @Override
             public void run() {
-                if (!isTracking) return;
+                if (targetRect == null) {
+                    stopTrackingLoop();
+                    return;
+                }
 
                 long currentTime = System.currentTimeMillis();
                 float deltaTime = (currentTime - lastTime) / 1000.0f;
                 lastTime = currentTime;
 
-                Rect currentRect = targetRect;
+                Rect currentRect;
+                synchronized (MainActivity.this) {
+                    currentRect = targetRect;
+                }
+
                 if (currentRect != null) {
                     // 如果不正在处理帧，则请求新帧进行实时检测更新位置
                     if (!isProcessingFrame && camera != null) {
@@ -369,11 +389,14 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
                         }
                     }
 
+                    // 即使未开启无人机控制，也计算控制量以获取水平/垂直角度
                     TrackingController.TrackingResult result = trackingController.processTarget(currentRect, deltaTime);
 
+                    // 实时更新UI数值和覆盖层角度
                     updateTargetMetrics();
 
-                    if (isBluetoothConnected) {
+                    // 只有在开启跟踪且蓝牙连接时才发送实际指令
+                    if (isTracking && isBluetoothConnected) {
                         bluetoothManager.sendCommand(result.command);
                     }
                 }
