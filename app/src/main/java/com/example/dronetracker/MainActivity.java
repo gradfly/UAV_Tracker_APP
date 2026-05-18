@@ -27,6 +27,8 @@ import android.widget.Toast;
 
 import com.google.mediapipe.tasks.components.containers.Detection;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
@@ -44,14 +46,16 @@ import java.util.Set;
 public class MainActivity extends AppCompatActivity implements SurfaceHolder.Callback {
     private static final String TAG = "MainActivity";
     private static final int REQUEST_PERMISSIONS = 1;
-    private static final int REQUEST_ENABLE_BT = 2;
 
     private SurfaceHolder surfaceHolder;
     private Camera camera;
     private VideoOverlayView overlayView;
     private TextView trackingStatus, horizontalAngle, verticalAngle, distanceValue;
     private SeekBar distanceSlider;
+    private TextView sliderValueTip;
     private Button bluetoothButton, trackingButton;
+
+    private ActivityResultLauncher<Intent> bluetoothEnableLauncher;
 
     private BluetoothManager bluetoothManager;
     private TrackingController trackingController;
@@ -73,6 +77,17 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        bluetoothEnableLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
+                result -> {
+                    if (result.getResultCode() == RESULT_OK) {
+                        connectToDrone();
+                    } else {
+                        Toast.makeText(this, "蓝牙未启用", Toast.LENGTH_SHORT).show();
+                    }
+                }
+        );
+
         initViews();
         initManagers();
         checkPermissions();
@@ -85,20 +100,50 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
         distanceSlider.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                float ratio = 1.0f - (progress / 100.0f);
-                trackingController.setTargetDistanceRatio(ratio);
-                distanceValue.setText(String.format("远近距离: %.1f", ratio * 10));
+                // 更新控制器中的距离参数
+                trackingController.onProgressChanged(progress);
+                
+                // 更新 UI 提示
+                float displayValue = 10.0f - (progress / 100.0f * 9.0f);
+                updateSliderTip(progress, displayValue);
             }
 
             @Override
-            public void onStartTrackingTouch(SeekBar seekBar) {}
+            public void onStartTrackingTouch(SeekBar seekBar) {
+                sliderValueTip.setVisibility(View.VISIBLE);
+            }
 
             @Override
-            public void onStopTrackingTouch(SeekBar seekBar) {}
+            public void onStopTrackingTouch(SeekBar seekBar) {
+                sliderValueTip.setVisibility(View.INVISIBLE);
+            }
         });
+
+        // 初始化距离参数，同步 UI 和控制器
+        int initialProgress = distanceSlider.getProgress();
+        trackingController.onProgressChanged(initialProgress);
+        updateSliderTip(initialProgress, 10.0f - (initialProgress / 100.0f * 9.0f));
 
         bluetoothButton.setOnClickListener(v -> toggleBluetooth());
         trackingButton.setOnClickListener(v -> toggleTracking());
+    }
+
+    private void updateSliderTip(int progress, float displayValue) {
+        sliderValueTip.setText(String.format(java.util.Locale.CHINA, "%.1f", displayValue));
+        
+        // 计算提示框的位置
+        // 由于 SeekBar 是 270 度旋转的（垂直），progress 0 在底部，100 在顶部
+        // SeekBar 的实际绘制宽度（即旋转后的高度）
+        int sliderWidth = distanceSlider.getWidth();
+        if (sliderWidth == 0) return;
+
+        int thumbOffset = (int) ((float) (100 - progress) / 100.0f * (sliderWidth - distanceSlider.getPaddingLeft() - distanceSlider.getPaddingRight()));
+        
+        // 计算 y 偏移。SeekBar 在父布局居中
+        int centerY = distanceSlider.getTop() + distanceSlider.getHeight() / 2;
+        int tipY = centerY - (sliderWidth / 2) + thumbOffset + distanceSlider.getPaddingLeft() - (sliderValueTip.getHeight() / 2);
+        
+        sliderValueTip.setY(tipY);
     }
 
     private void initViews() {
@@ -110,13 +155,14 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
         verticalAngle = findViewById(R.id.verticalAngle);
         distanceValue = findViewById(R.id.distanceValue);
         distanceSlider = findViewById(R.id.distanceSlider);
+        sliderValueTip = findViewById(R.id.sliderValueTip);
         bluetoothButton = findViewById(R.id.bluetoothButton);
         trackingButton = findViewById(R.id.trackingButton);
 
         // 设置距离滑块长度为屏幕高度的一半
         distanceSlider.post(() -> {
             int screenHeight = getResources().getDisplayMetrics().heightPixels;
-            int sliderWidth = screenHeight / 2;
+            int sliderWidth = (int) (screenHeight / 1.2);
             
             RelativeLayout.LayoutParams lp = (RelativeLayout.LayoutParams) distanceSlider.getLayoutParams();
             lp.width = sliderWidth;
@@ -171,14 +217,16 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
     }
 
     private void checkPermissions() {
-        String[] permissions = {
-                Manifest.permission.CAMERA,
-                Manifest.permission.BLUETOOTH,
-                Manifest.permission.BLUETOOTH_ADMIN,
-                Manifest.permission.ACCESS_FINE_LOCATION,
-                Manifest.permission.BLUETOOTH_SCAN,
-                Manifest.permission.BLUETOOTH_CONNECT
-        };
+        List<String> permissionList = new ArrayList<>();
+        permissionList.add(Manifest.permission.CAMERA);
+        permissionList.add(Manifest.permission.ACCESS_FINE_LOCATION);
+
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+            permissionList.add(Manifest.permission.BLUETOOTH_SCAN);
+            permissionList.add(Manifest.permission.BLUETOOTH_CONNECT);
+        }
+
+        String[] permissions = permissionList.toArray(new String[0]);
 
         boolean allGranted = true;
         for (String permission : permissions) {
@@ -206,7 +254,7 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
 
             if (!adapter.isEnabled()) {
                 Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-                startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
+                bluetoothEnableLauncher.launch(enableBtIntent);
             } else {
                 connectToDrone();
             }
@@ -390,7 +438,7 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
                     runOnUiThread(() -> {
                         overlayView.setTargetRect(targetRect);
                         overlayView.setTargetName(targetLabel);
-                        updateTargetMetrics();
+                        updateTargetMetrics(null);
                         
                         // 锁定目标后，自动进入“跟踪中”状态
                         isTracking = true;
@@ -411,7 +459,7 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
         }
     }
 
-    private void updateTargetMetrics() {
+    private void updateTargetMetrics(TrackingController.TrackingResult result) {
         Rect currentRect = targetRect;
         if (currentRect == null) return;
 
@@ -424,16 +472,24 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
 
         // 计算像素距离
         int pixelDX = targetCenterX - viewCenterX;
-        int pixelDY = targetCenterY - viewCenterY;
+        // 屏幕坐标系 Y 向下增加，要求“以上为正”，即 viewCenterY - targetCenterY
+        int pixelDY = viewCenterY - targetCenterY;
 
         // 估算远近距离（基于目标框大小，实际应根据YOLO检测到的物体类别和已知尺寸计算）
         float areaRatio = (float) (currentRect.width() * currentRect.height()) / (overlayView.getWidth() * overlayView.getHeight());
         float estimatedDistance = 1.0f / (float) Math.sqrt(areaRatio + 0.01f);
 
         runOnUiThread(() -> {
-            horizontalAngle.setText(String.format("水平距离: %d px", pixelDX));
-            verticalAngle.setText(String.format("竖直距离: %d px", pixelDY));
-            distanceValue.setText(String.format("远近距离: %.1f", estimatedDistance));
+            if (result != null) {
+                DroneCommand cmd = result.command;
+                horizontalAngle.setText(String.format(java.util.Locale.CHINA, "水平距离: %d px, %.2f", pixelDX, cmd.getYaw()));
+                verticalAngle.setText(String.format(java.util.Locale.CHINA, "竖直距离: %d px, %.2f", pixelDY, cmd.getThrottle()));
+                distanceValue.setText(String.format(java.util.Locale.CHINA, "远近距离: %.1f, %.2f", estimatedDistance, cmd.getPitch()));
+            } else {
+                horizontalAngle.setText(String.format(java.util.Locale.CHINA, "水平距离: %d px", pixelDX));
+                verticalAngle.setText(String.format(java.util.Locale.CHINA, "竖直距离: %d px", pixelDY));
+                distanceValue.setText(String.format(java.util.Locale.CHINA, "远近距离: %.1f", estimatedDistance));
+            }
             overlayView.setAngles(pixelDX, pixelDY);
         });
     }
@@ -477,7 +533,7 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
                     TrackingController.TrackingResult result = trackingController.processTarget(currentRect, deltaTime);
 
                     // 实时更新UI数值和覆盖层角度
-                    updateTargetMetrics();
+                    updateTargetMetrics(result);
 
                     // 只有在开启跟踪且蓝牙连接时才发送实际指令
                     if (isTracking && isBluetoothConnected) {
@@ -485,7 +541,7 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
                     }
                 }
 
-                mainHandler.postDelayed(this, 30);
+                mainHandler.postDelayed(this, 50);
             }
         };
         mainHandler.post(trackingRunnable);
@@ -606,9 +662,10 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
                 surfaceView.setLayoutParams(lp);
                 
                 overlayView.setLayoutParams(lp);
-            });
 
-            trackingController.setFrameSize(previewSize.height, previewSize.width);
+                // 同步更新跟踪控制器的画面尺寸，使其与覆盖层坐标系一致
+                trackingController.setFrameSize(lp.width, lp.height);
+            });
         } catch (IOException e) {
             Log.e(TAG, "Failed to open camera", e);
         }
@@ -627,24 +684,12 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
     }
 
     @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == REQUEST_ENABLE_BT) {
-            if (resultCode == RESULT_OK) {
-                connectToDrone();
-            } else {
-                Toast.makeText(this, "蓝牙未启用", Toast.LENGTH_SHORT).show();
-            }
-        }
-    }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == REQUEST_PERMISSIONS) {
             for (int result : grantResults) {
                 if (result != PackageManager.PERMISSION_GRANTED) {
-                    Toast.makeText(this, "需要授予所有权限", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, "需要授予所有权限才能运行", Toast.LENGTH_SHORT).show();
                     finish();
                     return;
                 }

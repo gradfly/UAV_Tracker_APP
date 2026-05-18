@@ -6,19 +6,18 @@ public class PIDController {
     private float kd;
     private float integral;
     private float lastError;
-    private float maxOutput;
-    private float minOutput;
+    //private float maxOutput;
+    //private float minOutput;
 
+    //public PIDController(float kp, float ki, float kd) { this(kp, ki, kd, -1, 1); }
+
+    //public PIDController(float kp, float ki, float kd, float minOutput, float maxOutput) {
     public PIDController(float kp, float ki, float kd) {
-        this(kp, ki, kd, -1, 1);
-    }
-
-    public PIDController(float kp, float ki, float kd, float minOutput, float maxOutput) {
         this.kp = kp;
         this.ki = ki;
         this.kd = kd;
-        this.minOutput = minOutput;
-        this.maxOutput = maxOutput;
+        //this.minOutput = minOutput;
+        //this.maxOutput = maxOutput;
         this.integral = 0;
         this.lastError = 0;
     }
@@ -28,11 +27,11 @@ public class PIDController {
         float derivative = (error - lastError) / deltaTime;
         float output = kp * error + ki * integral + kd * derivative;
         
-        output = Math.max(minOutput, Math.min(maxOutput, output));
-        
-        if (output >= maxOutput || output <= minOutput) {
-            integral -= error * deltaTime;
-        }
+//        output = Math.max(minOutput, Math.min(maxOutput, output));
+//
+//        if (output >= maxOutput || output <= minOutput) {
+//            integral -= error * deltaTime;
+//        }
         
         lastError = error;
         return output;

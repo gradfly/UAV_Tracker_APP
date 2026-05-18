@@ -14,10 +14,14 @@ public class DroneCommand {
     }
 
     public DroneCommand(float yaw, float throttle, float pitch, float roll) {
-        this.yaw = clamp(yaw, -1, 1);
-        this.throttle = clamp(throttle, -1, 1);
-        this.pitch = clamp(pitch, -1, 1);
+        this.yaw = clamp(applyDeadzone(yaw, 0.05f), -0.3f, 0.3f);
+        this.throttle = clamp(applyDeadzone(throttle, 0.05f), -0.3f, 0.3f);
+        this.pitch = clamp(applyDeadzone(pitch, 0.05f), -0.3f, 0.3f);
         this.roll = clamp(roll, -1, 1);
+    }
+
+    private float applyDeadzone(float value, float deadzone) {
+        return Math.abs(value) < deadzone ? 0 : value;
     }
 
     private float clamp(float value, float min, float max) {
@@ -28,41 +32,29 @@ public class DroneCommand {
         return yaw;
     }
 
-    public void setYaw(float yaw) {
-        this.yaw = clamp(yaw, -1, 1);
-    }
-
     public float getThrottle() {
         return throttle;
     }
-
-    public void setThrottle(float throttle) {
-        this.throttle = clamp(throttle, -1, 1);
-    }
-
     public float getPitch() {
         return pitch;
     }
 
-    public void setPitch(float pitch) {
-        this.pitch = clamp(pitch, -1, 1);
-    }
-
-    public float getRoll() {
-        return roll;
-    }
-
-    public void setRoll(float roll) {
-        this.roll = clamp(roll, -1, 1);
-    }
-
+//    public byte[] toBytes() {
+//        byte[] data = new byte[5];
+//        data[0] = (byte) 0xAA;
+//        data[1] = (byte) ((yaw + 1) * 127);
+//        data[2] = (byte) ((throttle + 1) * 127);
+//        data[3] = (byte) ((pitch + 1) * 127);
+//        data[4] = (byte) ((roll + 1) * 127);
+//        return data;
+//    }
     public byte[] toBytes() {
         byte[] data = new byte[5];
         data[0] = (byte) 0xAA;
-        data[1] = (byte) ((yaw + 1) * 127);
-        data[2] = (byte) ((throttle + 1) * 127);
-        data[3] = (byte) ((pitch + 1) * 127);
-        data[4] = (byte) ((roll + 1) * 127);
+        data[1] = (byte) (yaw * 127);
+        data[2] = (byte) (throttle  * 127);
+        data[3] = (byte) (pitch * 127);
+        data[4] = (byte) (roll * 127);
         return data;
     }
 

@@ -3,8 +3,8 @@ package com.example.dronetracker;
 import android.graphics.Rect;
 
 public class TrackingController {
-    private static final float FOV_HORIZONTAL = 45.0f;
-    private static final float FOV_VERTICAL = 60.0f;
+    public static final float FOV_HORIZONTAL = 60.0f;//fpv摄像头水平视角
+    public static final float FOV_VERTICAL = 45.0f;//fpv摄像头竖直视角
 
     private PIDController yawController;
     private PIDController throttleController;
@@ -15,10 +15,11 @@ public class TrackingController {
     private int frameHeight;
 
     public TrackingController() {
-        yawController = new PIDController(0.02f, 0.001f, 0.01f);
-        throttleController = new PIDController(0.02f, 0.001f, 0.01f);
-        pitchController = new PIDController(0.5f, 0.01f, 0.1f);
-        targetDistanceRatio = 0.5f;
+        yawController = new PIDController(0.02f, 0.000f, 0.01f);//ki=0.001
+        throttleController = new PIDController(0.02f, 0.000f, 0.01f);//ki=0.001
+        pitchController = new PIDController(0.05f, 0.00f, 0.1f);//ki=0.01
+        // 初始化默认距离，对应进度条中值50
+        onProgressChanged(20);
         trackingEnabled = false;
         frameWidth = 1920;
         frameHeight = 1080;
@@ -43,7 +44,17 @@ public class TrackingController {
     }
 
     public void setTargetDistanceRatio(float ratio) {
-        this.targetDistanceRatio = Math.max(0, Math.min(1, ratio));
+        this.targetDistanceRatio = ratio * 10.0f;
+    }
+
+    /**
+     * 根据UI进度条更新目标距离
+     * @param progress SeekBar进度 (0-100)
+     */
+    public void onProgressChanged(int progress) {
+        // 进度0-100 映射到 ratio 0.1-1.0
+        float ratio = 0.1f + (progress / 100.0f * 0.9f);
+        setTargetDistanceRatio(ratio);
     }
 
     public float getTargetDistanceRatio() {
@@ -62,17 +73,21 @@ public class TrackingController {
         int frameCenterY = frameHeight / 2;
 
         float horizontalOffset = (float) (targetCenterX - frameCenterX) / frameWidth;
-        float verticalOffset = (float) (targetCenterY - frameCenterY) / frameHeight;
+        // 屏幕坐标系 Y 向下增加，目标在水平线以上时 targetCenterY < frameCenterY
+        // 为了使“以上为正”，需要取负值：-(targetCenterY - frameCenterY)
+        float verticalOffset = (float) (frameCenterY - targetCenterY) / frameHeight;
 
         float horizontalAngle = horizontalOffset * FOV_HORIZONTAL;
         float verticalAngle = verticalOffset * FOV_VERTICAL;
 
         float yawOutput = yawController.compute(horizontalAngle, deltaTime);
-        float throttleOutput = throttleController.compute(-verticalAngle, deltaTime);
+        // verticalAngle 已经定义为“上正下负”，所以油门（throttle）输出应与 verticalAngle 同向
+        // 如果目标在上方 (verticalAngle > 0)，无人机需要上升
+        float throttleOutput = throttleController.compute(verticalAngle, deltaTime);
 
-        float currentSizeRatio = (float) (targetRect.width() * targetRect.height()) / (frameWidth * frameHeight);
-        float targetSizeRatio = targetDistanceRatio * 0.3f;
-        float sizeError = targetSizeRatio - currentSizeRatio;
+        float areaRatio = (float) (targetRect.width() * targetRect.height()) / (frameWidth * frameHeight);
+        float estimatedDistance = 1.0f / (float) Math.sqrt(areaRatio + 0.01f);
+        float sizeError = estimatedDistance - targetDistanceRatio;
         float pitchOutput = pitchController.compute(sizeError, deltaTime);
 
         DroneCommand command = new DroneCommand(yawOutput, throttleOutput, pitchOutput, 0);

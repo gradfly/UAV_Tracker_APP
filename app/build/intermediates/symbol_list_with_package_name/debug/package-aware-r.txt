@@ -2977,6 +2977,7 @@ drawable abc_vector_test
 drawable avd_hide_password
 drawable avd_show_password
 drawable bg_bottom_sheet
+drawable bg_tooltip
 drawable btn_checkbox_checked_mtrl
 drawable btn_checkbox_checked_to_unchecked_mtrl_animation
 drawable btn_checkbox_unchecked_mtrl
@@ -3488,6 +3489,7 @@ id sin
 id skipCollapsed
 id skipped
 id slide
+id sliderValueTip
 id snackbar_action
 id snackbar_text
 id snap
