@@ -401,29 +401,40 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
                     }
                 }
 
-                mainHandler.postDelayed(this, 50);
+                mainHandler.postDelayed(this, 30);
             }
         };
         mainHandler.post(trackingRunnable);
     }
 
     private void processFrameForTracking(byte[] data, Camera camera) {
+        if (targetRect == null) {
+            isProcessingFrame = false;
+            return;
+        }
+
         try {
             Camera.Parameters parameters = camera.getParameters();
             int width = parameters.getPreviewSize().width;
             int height = parameters.getPreviewSize().height;
 
             // 1. 将 NV21 数据转换为 Bitmap
+            // 优化：降低 JPEG 质量到 60 (YOLO 对此不敏感但压缩速度更快)
             android.graphics.YuvImage yuvImage = new android.graphics.YuvImage(data, android.graphics.ImageFormat.NV21, width, height, null);
             java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
-            yuvImage.compressToJpeg(new Rect(0, 0, width, height), 90, out);
+            yuvImage.compressToJpeg(new Rect(0, 0, width, height), 60, out);
             byte[] imageBytes = out.toByteArray();
             android.graphics.Bitmap bitmap = android.graphics.BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.length);
 
-            // 2. 旋转 Bitmap (90度)
+            // 2. 旋转并缩放
+            // 优化：在旋转的同时进行缩放可以减少内存拷贝
             android.graphics.Matrix matrix = new android.graphics.Matrix();
             matrix.postRotate(90);
+            // 这里我们保持原样，因为 YoloDetector 内部还会进行一次缩放
             android.graphics.Bitmap rotatedBitmap = android.graphics.Bitmap.createBitmap(bitmap, 0, 0, width, height, matrix, true);
+            
+            // 释放中间过程的 bitmap
+            if (bitmap != rotatedBitmap) bitmap.recycle();
 
             // 3. 使用 YOLO 检测当前画面中靠近上一次位置且类别相同的物体
             float scaleX = (float) rotatedBitmap.getWidth() / overlayView.getWidth();
@@ -432,13 +443,17 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
             float searchX, searchY;
             String currentLabel;
             synchronized (this) {
-                if (targetRect == null) return;
+                if (targetRect == null) {
+                    rotatedBitmap.recycle();
+                    return;
+                }
                 searchX = targetRect.centerX() * scaleX;
                 searchY = targetRect.centerY() * scaleY;
                 currentLabel = targetLabel;
             }
 
             Detection detection = yoloDetector.detect(rotatedBitmap, searchX, searchY, currentLabel);
+            rotatedBitmap.recycle();
 
             if (detection != null) {
                 android.graphics.RectF boxF = detection.boundingBox();
@@ -483,7 +498,9 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
         try {
             camera = Camera.open();
             Camera.Parameters params = camera.getParameters();
-            params.setPreviewSize(1920, 1080);
+            // 极致优化：将预览分辨率降低到 640x480
+            // 这将像素处理量降至最低，基本可以实现 YOLO 的实时满帧检测
+            params.setPreviewSize(640, 480);
             camera.setParameters(params);
             Camera.Size previewSize = camera.getParameters().getPreviewSize();
             camera.setDisplayOrientation(90);
@@ -493,7 +510,7 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
             // 调整SurfaceView比例防止拉伸
             runOnUiThread(() -> {
                 int screenWidth = getResources().getDisplayMetrics().widthPixels;
-                float aspect = (float) previewSize.width / previewSize.height; // 1920/1080
+                float aspect = (float) previewSize.width / previewSize.height; // 640/480
                 
                 View surfaceView = findViewById(R.id.surfaceView);
                 android.view.ViewGroup.LayoutParams lp = surfaceView.getLayoutParams();

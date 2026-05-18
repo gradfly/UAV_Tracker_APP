@@ -7,6 +7,7 @@ import android.graphics.RectF;
 import android.util.Log;
 
 import org.tensorflow.lite.Interpreter;
+import org.tensorflow.lite.gpu.GpuDelegate;
 import com.google.mediapipe.tasks.components.containers.Category;
 import com.google.mediapipe.tasks.components.containers.Detection;
 
@@ -49,7 +50,16 @@ public class YoloDetector {
     public YoloDetector(Context context) {
         try {
             Interpreter.Options options = new Interpreter.Options();
-            options.setNumThreads(4);
+            try {
+                // 尝试开启 GPU 加速
+                options.addDelegate(new GpuDelegate());
+                Log.d(TAG, "Using GPU Delegate");
+            } catch (Exception e) {
+                // 如果 GPU 不可用，则使用多线程 CPU
+                options.setNumThreads(4);
+                Log.d(TAG, "GPU not available, using CPU with 4 threads");
+            }
+
             interpreter = new Interpreter(loadModelFile(context), options);
             
             inputBuffer = ByteBuffer.allocateDirect(INPUT_SIZE * INPUT_SIZE * 3 * 4);
