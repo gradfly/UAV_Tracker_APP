@@ -93,11 +93,11 @@
 
     <SeekBar
         android:id="@+id/distanceSlider"
-        android:layout_width="400dp"
+        android:layout_width="600dp"
         android:layout_height="60dp"
         android:layout_alignParentRight="true"
         android:layout_centerVertical="true"
-        android:layout_marginRight="-170dp"
+        android:layout_marginRight="-270dp"
         android:max="100"
         android:progress="50"
         android:rotation="270"

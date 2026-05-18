@@ -95,8 +95,6 @@ public class VideoOverlayView extends View {
             paint.setColor(Color.WHITE);
             paint.setTextSize(28);
             paint.setStyle(Paint.Style.FILL);
-            canvas.drawText(String.format("水平: %.1f", horizontalAngle), 20, 40, paint);
-            canvas.drawText(String.format("竖直: %.1f", verticalAngle), 20, 75, paint);
         }
     }
 }

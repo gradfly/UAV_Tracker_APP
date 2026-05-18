@@ -220,26 +220,48 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
     }
 
     private void toggleTracking() {
-        if (targetRect == null && !isTracking) {
-            Toast.makeText(this, "请先点击视频选择跟踪目标", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        isTracking = !isTracking;
-        trackingController.setTrackingEnabled(isTracking);
-
-        if (isTracking) {
+        if (!isTracking) {
+            if (targetRect == null) {
+                Toast.makeText(this, "请先点击视频选择跟踪目标", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            isTracking = true;
+            trackingController.setTrackingEnabled(true);
+            overlayView.setTrackingEnabled(true);
             trackingButton.setText(R.string.tracking_enabled);
             trackingButton.setBackgroundColor(ContextCompat.getColor(this, R.color.green));
             trackingStatus.setText(R.string.tracking_enabled);
-            startTrackingLoop(); // 确保循环在运行
+            startTrackingLoop();
         } else {
+            // 如果当前正在跟踪，点击按钮则停止跟踪并清除目标
+            stopTrackingAndClearUI();
+        }
+    }
+
+    private void stopTrackingAndClearUI() {
+        isTracking = false;
+        trackingController.setTrackingEnabled(false);
+        overlayView.setTrackingEnabled(false);
+        
+        synchronized (this) {
+            targetRect = null;
+            targetLabel = null;
+        }
+
+        runOnUiThread(() -> {
             trackingButton.setText(R.string.tracking_disabled);
             trackingButton.setBackgroundColor(ContextCompat.getColor(this, R.color.accent_color));
             trackingStatus.setText(R.string.tracking_disabled);
-            // 不在此处停止循环，以保持视觉跟踪
-            sendStopCommand();
-        }
+            
+            overlayView.setTargetRect(null);
+            overlayView.setTargetName("");
+            horizontalAngle.setText(R.string.horizontal_angle);
+            verticalAngle.setText(R.string.vertical_angle);
+            distanceValue.setText(R.string.distance);
+        });
+
+        sendStopCommand();
+        stopTrackingLoop();
     }
 
     private void handleTouchEvent(MotionEvent event) {
@@ -300,30 +322,23 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
                         overlayView.setTargetRect(targetRect);
                         overlayView.setTargetName(targetLabel);
                         updateTargetMetrics();
-                        Toast.makeText(this, "已锁定: " + targetLabel, Toast.LENGTH_SHORT).show();
-                        startTrackingLoop(); // 锁定后立即启动视觉跟踪循环
+                        
+                        // 锁定目标后，自动进入“跟踪中”状态
+                        isTracking = true;
+                        trackingController.setTrackingEnabled(true);
+                        overlayView.setTrackingEnabled(true);
+                        trackingButton.setText(R.string.tracking_enabled);
+                        trackingButton.setBackgroundColor(ContextCompat.getColor(this, R.color.green));
+                        trackingStatus.setText(R.string.tracking_enabled);
+                        
+                        Toast.makeText(this, "已锁定并开启跟踪: " + targetLabel, Toast.LENGTH_SHORT).show();
+                        startTrackingLoop();
                     });
                 } else {
-                    synchronized (MainActivity.this) {
-                        targetRect = null;
-                        targetLabel = null;
-                    }
-                    runOnUiThread(() -> {
-                        overlayView.setTargetRect(null);
-                        overlayView.setTargetName("");
-                        horizontalAngle.setText("水平距离: 0 px");
-                        verticalAngle.setText("竖直距离: 0 px");
-                        distanceValue.setText("远近距离: 0.0");
-                        Toast.makeText(this, "未检测到物体，已清除锁定", Toast.LENGTH_SHORT).show();
-                    });
+                    stopTrackingAndClearUI();
+                    runOnUiThread(() -> Toast.makeText(this, "未检测到物体", Toast.LENGTH_SHORT).show());
                 }
             });
-
-            trackingController.setTrackingEnabled(false);
-            isTracking = false;
-            trackingButton.setText(R.string.tracking_disabled);
-            trackingButton.setBackgroundColor(ContextCompat.getColor(this, R.color.accent_color));
-            trackingStatus.setText(R.string.tracking_disabled);
         }
     }
 
@@ -455,7 +470,7 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
             Detection detection = yoloDetector.detect(rotatedBitmap, searchX, searchY, currentLabel);
             rotatedBitmap.recycle();
 
-            if (detection != null) {
+            if (detection != null && isTracking) {
                 android.graphics.RectF boxF = detection.boundingBox();
                 Rect newRect = new Rect(
                         (int) (boxF.left / scaleX),
@@ -465,12 +480,15 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
                 );
 
                 synchronized (this) {
+                    if (!isTracking) return;
                     targetRect = newRect;
                 }
 
                 runOnUiThread(() -> {
-                    overlayView.setTargetRect(targetRect);
-                    overlayView.setTargetName(currentLabel);
+                    if (isTracking) {
+                        overlayView.setTargetRect(targetRect);
+                        overlayView.setTargetName(currentLabel);
+                    }
                 });
             }
         } catch (Exception e) {
