@@ -11,4 +11,7 @@
     <string name="connecting">连接中...</string>
     <string name="connected">已连接</string>
     <string name="disconnected">未连接</string>
+    <string name="select_device">选择要连接的设备</string>
+    <string name="no_paired_devices">未找到已配对设备，请先在系统设置中配对</string>
+    <string name="cancel">取消</string>
 </resources>

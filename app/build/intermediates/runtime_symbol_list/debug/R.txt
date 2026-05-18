@@ -2975,6 +2975,7 @@ int drawable abc_textfield_search_material 0x7f070075
 int drawable abc_vector_test 0x7f070076
 int drawable avd_hide_password 0x7f070077
 int drawable avd_show_password 0x7f070078
+int drawable bg_bottom_sheet 0x7f0700e0
 int drawable btn_checkbox_checked_mtrl 0x7f070079
 int drawable btn_checkbox_checked_to_unchecked_mtrl_animation 0x7f07007a
 int drawable btn_checkbox_unchecked_mtrl 0x7f07007b
@@ -3228,6 +3229,9 @@ int id design_menu_item_action_area 0x7f080092
 int id design_menu_item_action_area_stub 0x7f080093
 int id design_menu_item_text 0x7f080094
 int id design_navigation_view 0x7f080095
+int id deviceAddress 0x7f0801fa
+int id deviceName 0x7f0801fb
+int id deviceRecyclerView 0x7f0801fc
 int id dialog_button 0x7f080096
 int id dimensions 0x7f080097
 int id direct 0x7f080098
@@ -3715,6 +3719,8 @@ int layout design_navigation_menu 0x7f0b0029
 int layout design_navigation_menu_item 0x7f0b002a
 int layout design_text_input_end_icon 0x7f0b002b
 int layout design_text_input_start_icon 0x7f0b002c
+int layout item_bluetooth_device 0x7f0b006a
+int layout layout_bluetooth_bottom_sheet 0x7f0b006b
 int layout m3_alert_dialog 0x7f0b002d
 int layout m3_alert_dialog_actions 0x7f0b002e
 int layout m3_alert_dialog_title 0x7f0b002f
@@ -3816,6 +3822,7 @@ int string bottomsheet_action_expand 0x7f0f0022
 int string bottomsheet_action_expand_halfway 0x7f0f0023
 int string bottomsheet_drag_handle_clicked 0x7f0f0024
 int string bottomsheet_drag_handle_content_description 0x7f0f0025
+int string cancel 0x7f0f00ab
 int string character_counter_content_description 0x7f0f0026
 int string character_counter_overflowed_content_description 0x7f0f0027
 int string character_counter_pattern 0x7f0f0028
@@ -3933,6 +3940,7 @@ int string mtrl_switch_track_decoration_path 0x7f0f0097
 int string mtrl_switch_track_path 0x7f0f0098
 int string mtrl_timepicker_cancel 0x7f0f0099
 int string mtrl_timepicker_confirm 0x7f0f009a
+int string no_paired_devices 0x7f0f00ac
 int string password_toggle_content_description 0x7f0f009b
 int string path_password_eye 0x7f0f009c
 int string path_password_eye_mask_strike_through 0x7f0f009d
@@ -3942,6 +3950,7 @@ int string search_menu_title 0x7f0f00a0
 int string searchbar_scrolling_view_behavior 0x7f0f00a1
 int string searchview_clear_text_content_description 0x7f0f00a2
 int string searchview_navigation_content_description 0x7f0f00a3
+int string select_device 0x7f0f00ad
 int string select_object 0x7f0f00a4
 int string side_sheet_accessibility_pane_title 0x7f0f00a5
 int string side_sheet_behavior 0x7f0f00a6

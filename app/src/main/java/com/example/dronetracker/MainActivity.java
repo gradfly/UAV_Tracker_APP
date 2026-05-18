@@ -13,10 +13,12 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.RelativeLayout;
 import android.widget.SeekBar;
@@ -25,11 +27,18 @@ import android.widget.Toast;
 
 import com.google.mediapipe.tasks.components.containers.Detection;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+
+import com.google.android.material.bottomsheet.BottomSheetDialog;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 
 public class MainActivity extends AppCompatActivity implements SurfaceHolder.Callback {
@@ -204,19 +213,79 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
         }
     }
 
+    @SuppressLint("MissingPermission")
     private void connectToDrone() {
         BluetoothAdapter adapter = BluetoothAdapter.getDefaultAdapter();
         Set<BluetoothDevice> pairedDevices = adapter.getBondedDevices();
 
-        for (BluetoothDevice device : pairedDevices) {
-            if (device.getName().contains("Drone") || device.getName().contains("drone")) {
+        if (pairedDevices != null && !pairedDevices.isEmpty()) {
+            List<BluetoothDevice> deviceList = new ArrayList<>(pairedDevices);
+            
+            BottomSheetDialog bottomSheetDialog = new BottomSheetDialog(this);
+            View bottomSheetView = LayoutInflater.from(this).inflate(R.layout.layout_bluetooth_bottom_sheet, null);
+            bottomSheetDialog.setContentView(bottomSheetView);
+
+            RecyclerView recyclerView = bottomSheetView.findViewById(R.id.deviceRecyclerView);
+            recyclerView.setLayoutManager(new LinearLayoutManager(this));
+            
+            BluetoothDeviceAdapter deviceAdapter = new BluetoothDeviceAdapter(deviceList, device -> {
                 bluetoothButton.setText(R.string.connecting);
                 bluetoothManager.connectToDevice(device);
-                return;
-            }
+                bottomSheetDialog.dismiss();
+            });
+            recyclerView.setAdapter(deviceAdapter);
+
+            bottomSheetDialog.show();
+        } else {
+            Toast.makeText(this, R.string.no_paired_devices, Toast.LENGTH_LONG).show();
+        }
+    }
+
+    // 蓝牙设备适配器
+    private static class BluetoothDeviceAdapter extends RecyclerView.Adapter<BluetoothDeviceAdapter.ViewHolder> {
+        private final List<BluetoothDevice> devices;
+        private final OnDeviceClickListener listener;
+
+        interface OnDeviceClickListener {
+            void onDeviceClick(BluetoothDevice device);
         }
 
-        Toast.makeText(this, "未找到无人机蓝牙设备", Toast.LENGTH_SHORT).show();
+        BluetoothDeviceAdapter(List<BluetoothDevice> devices, OnDeviceClickListener listener) {
+            this.devices = devices;
+            this.listener = listener;
+        }
+
+        @NonNull
+        @Override
+        public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+            View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_bluetooth_device, parent, false);
+            return new ViewHolder(view);
+        }
+
+        @SuppressLint("MissingPermission")
+        @Override
+        public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
+            BluetoothDevice device = devices.get(position);
+            holder.nameText.setText(device.getName() != null ? device.getName() : "Unknown Device");
+            holder.addressText.setText(device.getAddress());
+            holder.itemView.setOnClickListener(v -> listener.onDeviceClick(device));
+        }
+
+        @Override
+        public int getItemCount() {
+            return devices.size();
+        }
+
+        static class ViewHolder extends RecyclerView.ViewHolder {
+            TextView nameText;
+            TextView addressText;
+
+            ViewHolder(View itemView) {
+                super(itemView);
+                nameText = itemView.findViewById(R.id.deviceName);
+                addressText = itemView.findViewById(R.id.deviceAddress);
+            }
+        }
     }
 
     private void toggleTracking() {
