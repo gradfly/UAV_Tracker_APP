@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/black">
+
+    <SurfaceView
+        android:id="@+id/surfaceView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <com.example.dronetracker.VideoOverlayView
+        android:id="@+id/overlayView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <LinearLayout
+        android:id="@+id/infoPanel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentLeft="true"
+        android:layout_margin="16dp"
+        android:background="@color/overlay"
+        android:orientation="vertical"
+        android:padding="12dp"
+        android:minWidth="140dp">
+
+        <TextView
+            android:id="@+id/trackingStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/tracking_disabled"
+            android:textColor="@color/white"
+            android:textSize="18sp"
+            android:textAlignment="center"
+            android:padding="4dp"/>
+
+        <TextView
+            android:id="@+id/horizontalAngle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/horizontal_angle"
+            android:textColor="@color/yellow"
+            android:textSize="16sp"
+            android:layout_marginTop="8dp"/>
+
+        <TextView
+            android:id="@+id/verticalAngle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/vertical_angle"
+            android:textColor="@color/yellow"
+            android:textSize="16sp"/>
+
+        <TextView
+            android:id="@+id/distanceValue"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/distance"
+            android:textColor="@color/yellow"
+            android:textSize="16sp"/>
+    </LinearLayout>
+
+    <RelativeLayout
+        android:layout_width="60dp"
+        android:layout_height="match_parent"
+        android:layout_alignParentRight="true"
+        android:background="@color/overlay">
+
+        <TextView
+            android:id="@+id/labelNear"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_alignParentTop="true"
+            android:layout_marginTop="32dp"
+            android:text="近"
+            android:textColor="@color/white"
+            android:textSize="14sp"
+            android:textAlignment="center"/>
+
+        <TextView
+            android:id="@+id/labelFar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_alignParentBottom="true"
+            android:layout_marginBottom="32dp"
+            android:text="远"
+            android:textColor="@color/white"
+            android:textSize="14sp"
+            android:textAlignment="center"/>
+    </RelativeLayout>
+
+    <SeekBar
+        android:id="@+id/distanceSlider"
+        android:layout_width="400dp"
+        android:layout_height="60dp"
+        android:layout_alignParentRight="true"
+        android:layout_centerVertical="true"
+        android:layout_marginRight="-170dp"
+        android:max="100"
+        android:progress="50"
+        android:rotation="270"
+        android:thumb="@drawable/ic_thumb"
+        android:progressDrawable="@drawable/seekbar_style"/>
+
+    <Button
+        android:id="@+id/bluetoothButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentLeft="true"
+        android:layout_margin="16dp"
+        android:text="@string/bluetooth_connect"
+        android:textColor="@color/white"
+        android:background="@color/primary_color"
+        android:paddingStart="24dp"
+        android:paddingTop="12dp"
+        android:paddingEnd="24dp"
+        android:paddingBottom="12dp"/>
+
+    <Button
+        android:id="@+id/trackingButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true"
+        android:layout_margin="16dp"
+        android:text="@string/tracking_disabled"
+        android:textColor="@color/white"
+        android:background="@color/accent_color"
+        android:paddingStart="32dp"
+        android:paddingTop="12dp"
+        android:paddingEnd="32dp"
+        android:paddingBottom="12dp"/>
+
+</RelativeLayout>

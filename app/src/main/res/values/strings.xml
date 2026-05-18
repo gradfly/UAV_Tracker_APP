@@ -1,0 +1,14 @@
+<resources>
+    <string name="app_name">DroneTracker</string>
+    <string name="select_object">点击视频选择跟踪目标</string>
+    <string name="tracking_enabled">跟踪中</string>
+    <string name="tracking_disabled">未跟踪</string>
+    <string name="distance">远近距离: </string>
+    <string name="horizontal_angle">水平距离: </string>
+    <string name="vertical_angle">竖直距离: </string>
+    <string name="bluetooth_connect">连接蓝牙</string>
+    <string name="bluetooth_disconnect">断开连接</string>
+    <string name="connecting">连接中...</string>
+    <string name="connected">已连接</string>
+    <string name="disconnected">未连接</string>
+</resources>
