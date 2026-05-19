@@ -482,9 +482,9 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
         runOnUiThread(() -> {
             if (result != null) {
                 DroneCommand cmd = result.command;
-                horizontalAngle.setText(String.format(java.util.Locale.CHINA, "水平距离: %d px, %.2f", pixelDX, cmd.getYaw()));
-                verticalAngle.setText(String.format(java.util.Locale.CHINA, "竖直距离: %d px, %.2f", pixelDY, cmd.getThrottle()));
-                distanceValue.setText(String.format(java.util.Locale.CHINA, "远近距离: %.1f, %.2f", estimatedDistance, cmd.getPitch()));
+                horizontalAngle.setText(String.format(java.util.Locale.CHINA, "水平距离: %d px, %.2f", pixelDX, cmd.getYaw()*100));
+                verticalAngle.setText(String.format(java.util.Locale.CHINA, "竖直距离: %d px, %.2f", pixelDY, cmd.getThrottle()*100));
+                distanceValue.setText(String.format(java.util.Locale.CHINA, "远近距离: %.1f, %.2f", estimatedDistance, cmd.getPitch()*100));
             } else {
                 horizontalAngle.setText(String.format(java.util.Locale.CHINA, "水平距离: %d px", pixelDX));
                 verticalAngle.setText(String.format(java.util.Locale.CHINA, "竖直距离: %d px", pixelDY));
