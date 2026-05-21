@@ -49,12 +49,12 @@ public class DroneCommand {
 //        return data;
 //    }
     public byte[] toBytes() {
-        byte[] data = new byte[5];
+        byte[] data = new byte[4];
         data[0] = (byte) 0xAA;
-        data[1] = (byte) (yaw * 100);
+        data[1] = (byte) (yaw * 150);
         data[2] = (byte) (throttle  * 100);
         data[3] = (byte) (pitch * 100);
-        data[4] = (byte) (roll * 100);
+        //data[4] = (byte) (roll * 100);
         return data;
     }
 

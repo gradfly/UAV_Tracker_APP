@@ -4,7 +4,7 @@
     android:layout_height="match_parent"
     android:background="@color/black">
 
-    <SurfaceView
+    <com.example.dronetracker.SimpleUVCCameraTextureView
         android:id="@+id/surfaceView"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
@@ -148,6 +148,22 @@
         android:paddingStart="32dp"
         android:paddingTop="12dp"
         android:paddingEnd="32dp"
+        android:paddingBottom="12dp"/>
+
+    <Button
+        android:id="@+id/switchCameraButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentBottom="true"
+        android:layout_margin="16dp"
+        android:layout_marginRight="76dp"
+        android:text="@string/switch_camera"
+        android:textColor="@color/white"
+        android:background="@color/primary_color"
+        android:paddingStart="16dp"
+        android:paddingTop="12dp"
+        android:paddingEnd="16dp"
         android:paddingBottom="12dp"/>
 
 </RelativeLayout>

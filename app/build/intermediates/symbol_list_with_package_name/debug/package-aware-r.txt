@@ -3519,6 +3519,7 @@ id submenuarrow
 id submit_area
 id supportScrollUp
 id surfaceView
+id switchCameraButton
 id tabMode
 id tag_accessibility_actions
 id tag_accessibility_clickable_spans
@@ -3949,6 +3950,7 @@ string path_password_eye
 string path_password_eye_mask_strike_through
 string path_password_eye_mask_visible
 string path_password_strike_through
+string phone_camera
 string search_menu_title
 string searchbar_scrolling_view_behavior
 string searchview_clear_text_content_description
@@ -3958,8 +3960,10 @@ string select_object
 string side_sheet_accessibility_pane_title
 string side_sheet_behavior
 string status_bar_notification_info_overflow
+string switch_camera
 string tracking_disabled
 string tracking_enabled
+string usb_camera
 string vertical_angle
 style AlertDialog_AppCompat
 style AlertDialog_AppCompat_Light
@@ -5233,3 +5237,5 @@ styleable ViewTransition android_id SharedValue SharedValueId clearsTag duration
 styleable include constraintSet
 xml backup_rules
 xml data_extraction_rules
+xml device_filter
+xml usb_device_filter

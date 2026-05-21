@@ -1,7 +1,7 @@
 {
     "logs": [
         {
-            "outputFile": "com.example.dronetracker.app-mergeDebugResources-29:/values-ldrtl-v17/values-ldrtl-v17.xml",
+            "outputFile": "com.example.dronetracker.app-mergeDebugResources-30:/values-ldrtl-v17/values-ldrtl-v17.xml",
             "map": [
                 {
                     "source": "C:\\Users\\xx.mu\\.gradle\\caches\\transforms-3\\99dc24b8086e9e02f60cbc0643cdc897\\transformed\\material-1.11.0\\res\\values-ldrtl-v17\\values-ldrtl-v17.xml",

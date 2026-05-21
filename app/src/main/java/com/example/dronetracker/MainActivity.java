@@ -26,6 +26,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.mediapipe.tasks.components.containers.Detection;
+import com.example.dronetracker.SimpleUVCCameraTextureView;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -43,17 +44,17 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-public class MainActivity extends AppCompatActivity implements SurfaceHolder.Callback {
+public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
     private static final int REQUEST_PERMISSIONS = 1;
 
-    private SurfaceHolder surfaceHolder;
+    private SimpleUVCCameraTextureView surfaceView;
     private Camera camera;
     private VideoOverlayView overlayView;
     private TextView trackingStatus, horizontalAngle, verticalAngle, distanceValue;
     private SeekBar distanceSlider;
     private TextView sliderValueTip;
-    private Button bluetoothButton, trackingButton;
+    private Button bluetoothButton, trackingButton, switchCameraButton;
 
     private ActivityResultLauncher<Intent> bluetoothEnableLauncher;
 
@@ -71,6 +72,12 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
     private boolean isTracking = false;
     private boolean isBluetoothConnected = false;
     private boolean isProcessingFrame = false;
+
+    // USB Camera members
+    private UVCCameraManager mCameraHelper;
+    private boolean isCameraRequest = false;
+    private boolean isCameraConnected = false;
+    private boolean useUsbCamera = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -126,29 +133,364 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
 
         bluetoothButton.setOnClickListener(v -> toggleBluetooth());
         trackingButton.setOnClickListener(v -> toggleTracking());
+        switchCameraButton.setOnClickListener(v -> showCameraSwitchDialog());
+    }
+
+    private void initUsbCamera() {
+        if (mCameraHelper != null) {
+            return;
+        }
+
+        mCameraHelper = new UVCCameraManager(this, surfaceView);
+        mCameraHelper.setDefaultFrameFormat(UVCCameraManager.FRAME_FORMAT_YUYV);
+        mCameraHelper.setOnConnectListener(new UVCCameraManager.OnConnectListener() {
+            @Override
+            public void onAttachDev(android.hardware.usb.UsbDevice device) {
+                runOnUiThread(() -> {
+                    if (!isCameraRequest && surfaceView != null && surfaceView.isAvailable()) {
+                        isCameraRequest = true;
+                        try {
+                            if (mCameraHelper != null) {
+                                mCameraHelper.requestPermission(device);
+                            }
+                        } catch (Exception e) {
+                            Log.e(TAG, "Failed to request USB permission", e);
+                            isCameraRequest = false;
+                        }
+                    }
+                });
+            }
+
+            @Override
+            public void onDettachDev(android.hardware.usb.UsbDevice device) {
+                runOnUiThread(() -> {
+                    isCameraRequest = false;
+                    isCameraConnected = false;
+                    if (mCameraHelper != null) {
+                        try {
+                            mCameraHelper.closeCamera();
+                        } catch (Exception e) {
+                            Log.e(TAG, "Failed to close USB camera", e);
+                        }
+                    }
+                    Toast.makeText(MainActivity.this, "USB摄像头已断开", Toast.LENGTH_SHORT).show();
+                });
+            }
+
+            @Override
+            public void onConnectDev(android.hardware.usb.UsbDevice device, boolean isConnected) {
+                isCameraConnected = isConnected;
+                if (isConnected && useUsbCamera) {
+                    runOnUiThread(() -> startUsbPreview());
+                }
+            }
+
+            @Override
+            public void onDisConnectDev(android.hardware.usb.UsbDevice device) {
+                isCameraConnected = false;
+            }
+        });
+
+        mCameraHelper.setOnPreviewFrameListener(nv21 -> {
+            if (isTracking && !isProcessingFrame && useUsbCamera) {
+                isProcessingFrame = true;
+                backgroundHandler.post(() -> processUsbFrame(nv21));
+            }
+        });
+    }
+
+    private void startUsbPreview() {
+        if (isFinishing() || isDestroyed()) {
+            Log.w(TAG, "Activity is finishing, skipping USB preview start");
+            return;
+        }
+        
+        if (mCameraHelper == null) {
+            Log.w(TAG, "Camera helper is null");
+            return;
+        }
+        
+        if (surfaceView == null) {
+            Log.w(TAG, "SurfaceView is null");
+            return;
+        }
+        
+        if (!surfaceView.isAvailable()) {
+            runOnUiThread(() -> {
+                Toast.makeText(this, "等待预览界面准备就绪...", Toast.LENGTH_SHORT).show();
+            });
+            return;
+        }
+
+        try {
+            mCameraHelper.startPreview(null);
+
+            runOnUiThread(() -> {
+                if (isFinishing() || isDestroyed()) return;
+                
+                int screenWidth = getResources().getDisplayMetrics().widthPixels;
+                float aspect = 640.0f / 480.0f;
+                android.view.ViewGroup.LayoutParams lp = surfaceView.getLayoutParams();
+                lp.width = screenWidth;
+                lp.height = (int) (screenWidth / aspect);
+                surfaceView.setLayoutParams(lp);
+                
+                if (overlayView != null) {
+                    overlayView.setLayoutParams(lp);
+                }
+                
+                if (trackingController != null) {
+                    trackingController.setFrameSize(lp.width, lp.height);
+                }
+            });
+        } catch (Exception e) {
+            Log.e(TAG, "启动USB预览失败", e);
+            runOnUiThread(() -> {
+                Toast.makeText(this, "启动USB预览失败: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            });
+        }
+    }
+
+    private void processUsbFrame(byte[] nv21) {
+        if (targetRect == null) {
+            isProcessingFrame = false;
+            return;
+        }
+
+        int width = 640;
+        int height = 480;
+
+        try {
+            android.graphics.YuvImage yuvImage = new android.graphics.YuvImage(nv21, android.graphics.ImageFormat.NV21, width, height, null);
+            java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+            yuvImage.compressToJpeg(new Rect(0, 0, width, height), 60, out);
+            byte[] imageBytes = out.toByteArray();
+            android.graphics.Bitmap bitmap = android.graphics.BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.length);
+
+            if (bitmap == null) {
+                Log.e(TAG, "Failed to decode bitmap from USB frame");
+                isProcessingFrame = false;
+                return;
+            }
+
+            processFrameWithBitmap(bitmap);
+        } catch (Exception e) {
+            Log.e(TAG, "Error processing USB frame", e);
+            isProcessingFrame = false;
+        }
+    }
+
+    private void processFrameWithBitmap(android.graphics.Bitmap bitmap) {
+        if (targetRect == null) {
+            bitmap.recycle();
+            isProcessingFrame = false;
+            return;
+        }
+
+        float scaleX = (float) bitmap.getWidth() / overlayView.getWidth();
+        float scaleY = (float) bitmap.getHeight() / overlayView.getHeight();
+        
+        float searchX, searchY;
+        String currentLabel;
+        synchronized (this) {
+            if (targetRect == null) {
+                bitmap.recycle();
+                isProcessingFrame = false;
+                return;
+            }
+            searchX = targetRect.centerX() * scaleX;
+            searchY = targetRect.centerY() * scaleY;
+            currentLabel = targetLabel;
+        }
+
+        Detection detection = yoloDetector.detect(bitmap, searchX, searchY, currentLabel);
+        bitmap.recycle();
+
+        if (detection != null && isTracking) {
+            android.graphics.RectF boxF = detection.boundingBox();
+            Rect newRect = new Rect(
+                    (int) (boxF.left / scaleX),
+                    (int) (boxF.top / scaleY),
+                    (int) (boxF.right / scaleX),
+                    (int) (boxF.bottom / scaleY)
+            );
+
+            synchronized (this) {
+                if (!isTracking) return;
+                targetRect = newRect;
+            }
+
+            runOnUiThread(() -> {
+                if (isTracking) {
+                    overlayView.setTargetRect(targetRect);
+                    overlayView.setTargetName(currentLabel);
+                }
+            });
+        }
+        isProcessingFrame = false;
+    }
+
+    private void showCameraSwitchDialog() {
+        String[] options = {getString(R.string.phone_camera), getString(R.string.usb_camera)};
+        new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle(R.string.switch_camera)
+                .setItems(options, (dialog, which) -> {
+                    if (which == 0) { // 手机摄像头
+                        if (useUsbCamera) {
+                            switchToPhoneCamera();
+                        }
+                    } else { // USB 摄像头
+                        if (!useUsbCamera) {
+                            switchToUsbCamera();
+                        }
+                    }
+                })
+                .show();
+    }
+
+    private void switchToPhoneCamera() {
+        stopTrackingAndClearUI();
+        if (mCameraHelper != null) {
+            mCameraHelper.closeCamera();
+        }
+        useUsbCamera = false;
+        initPhoneCamera();
+    }
+
+    private void switchToUsbCamera() {
+        stopTrackingAndClearUI();
+        
+        if (camera != null) {
+            try {
+                camera.stopPreview();
+                camera.release();
+            } catch (Exception e) {
+                Log.e(TAG, "Failed to release phone camera", e);
+            } finally {
+                camera = null;
+            }
+        }
+        
+        useUsbCamera = true;
+        
+        if (isCameraConnected && mCameraHelper != null) {
+            startUsbPreview();
+        } else {
+            runOnUiThread(() -> {
+                Toast.makeText(this, "USB摄像头未连接或未授权", Toast.LENGTH_SHORT).show();
+            });
+        }
+    }
+
+    private void initPhoneCamera() {
+        if (surfaceView.isAvailable()) {
+            initPhoneCameraWithSurface(surfaceView.getSurfaceTexture());
+        }
+    }
+
+    private void initPhoneCameraWithSurface(android.graphics.SurfaceTexture surface) {
+        try {
+            camera = Camera.open();
+            Camera.Parameters params = camera.getParameters();
+            params.setPreviewSize(640, 480);
+            camera.setParameters(params);
+            Camera.Size previewSize = camera.getParameters().getPreviewSize();
+            camera.setDisplayOrientation(90);
+            camera.setPreviewTexture(surface);
+            camera.startPreview();
+
+            runOnUiThread(() -> {
+                int screenWidth = getResources().getDisplayMetrics().widthPixels;
+                float aspect = (float) previewSize.width / previewSize.height;
+
+                android.view.ViewGroup.LayoutParams lp = surfaceView.getLayoutParams();
+                lp.width = screenWidth;
+                lp.height = (int) (screenWidth * aspect);
+
+                overlayView.setLayoutParams(lp);
+                trackingController.setFrameSize(lp.width, lp.height);
+            });
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to open phone camera", e);
+            if (camera != null) {
+                camera.release();
+                camera = null;
+            }
+        }
     }
 
     private void updateSliderTip(int progress, float displayValue) {
         sliderValueTip.setText(String.format(java.util.Locale.CHINA, "%.1f", displayValue));
-        
-        // 计算提示框的位置
-        // 由于 SeekBar 是 270 度旋转的（垂直），progress 0 在底部，100 在顶部
-        // SeekBar 的实际绘制宽度（即旋转后的高度）
+
         int sliderWidth = distanceSlider.getWidth();
         if (sliderWidth == 0) return;
 
         int thumbOffset = (int) ((float) (100 - progress) / 100.0f * (sliderWidth - distanceSlider.getPaddingLeft() - distanceSlider.getPaddingRight()));
-        
-        // 计算 y 偏移。SeekBar 在父布局居中
+
         int centerY = distanceSlider.getTop() + distanceSlider.getHeight() / 2;
         int tipY = centerY - (sliderWidth / 2) + thumbOffset + distanceSlider.getPaddingLeft() - (sliderValueTip.getHeight() / 2);
-        
+
         sliderValueTip.setY(tipY);
     }
 
     private void initViews() {
-        surfaceHolder = ((SurfaceView) findViewById(R.id.surfaceView)).getHolder();
-        surfaceHolder.addCallback(this);
+        surfaceView = findViewById(R.id.surfaceView);
+        surfaceView.setSurfaceTextureListener(new android.view.TextureView.SurfaceTextureListener() {
+            @Override
+            public void onSurfaceTextureAvailable(@NonNull android.graphics.SurfaceTexture surface, int width, int height) {
+                if (isFinishing() || isDestroyed()) {
+                    Log.w(TAG, "Activity is finishing, skipping surface initialization");
+                    return;
+                }
+                
+                if (mCameraHelper == null) {
+                    try {
+                        initUsbCamera();
+                    } catch (Exception e) {
+                        Log.e(TAG, "Failed to initialize USB camera", e);
+                    }
+                }
+                
+                checkAndRegisterUsb();
+
+                if (!useUsbCamera) {
+                    try {
+                        initPhoneCameraWithSurface(surface);
+                    } catch (Exception e) {
+                        Log.e(TAG, "Failed to initialize phone camera", e);
+                    }
+                }
+            }
+
+            @Override
+            public void onSurfaceTextureSizeChanged(@NonNull android.graphics.SurfaceTexture surface, int width, int height) {}
+
+            @Override
+            public boolean onSurfaceTextureDestroyed(@NonNull android.graphics.SurfaceTexture surface) {
+                if (camera != null) {
+                    try {
+                        camera.stopPreview();
+                        camera.release();
+                    } catch (Exception e) {
+                        Log.e(TAG, "Failed to release phone camera", e);
+                    } finally {
+                        camera = null;
+                    }
+                }
+
+                if (mCameraHelper != null) {
+                    try {
+                        mCameraHelper.unregister();
+                    } catch (Exception e) {
+                        Log.e(TAG, "Failed to unregister USB", e);
+                    }
+                }
+                return true;
+            }
+
+            @Override
+            public void onSurfaceTextureUpdated(@NonNull android.graphics.SurfaceTexture surface) {}
+        });
         overlayView = findViewById(R.id.overlayView);
         trackingStatus = findViewById(R.id.trackingStatus);
         horizontalAngle = findViewById(R.id.horizontalAngle);
@@ -158,6 +500,7 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
         sliderValueTip = findViewById(R.id.sliderValueTip);
         bluetoothButton = findViewById(R.id.bluetoothButton);
         trackingButton = findViewById(R.id.trackingButton);
+        switchCameraButton = findViewById(R.id.switchCameraButton);
 
         // 设置距离滑块长度为屏幕高度的一半
         distanceSlider.post(() -> {
@@ -238,6 +581,41 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
 
         if (!allGranted) {
             ActivityCompat.requestPermissions(this, permissions, REQUEST_PERMISSIONS);
+        } else {
+            checkAndRegisterUsb();
+        }
+    }
+
+    private void checkAndRegisterUsb() {
+        if (isFinishing() || isDestroyed()) {
+            Log.w(TAG, "Activity is finishing, skipping USB registration");
+            return;
+        }
+        
+        if (mCameraHelper == null) {
+            Log.w(TAG, "Camera helper is null");
+            return;
+        }
+        
+        if (surfaceView == null) {
+            Log.w(TAG, "SurfaceView is null");
+            return;
+        }
+        
+        if (!surfaceView.isAvailable()) {
+            Log.w(TAG, "SurfaceView is not available");
+            return;
+        }
+        
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+            Log.w(TAG, "Camera permission not granted");
+            return;
+        }
+        
+        try {
+            mCameraHelper.register();
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to register USB monitor", e);
         }
     }
 
@@ -391,72 +769,100 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
                 return;
             }
 
-            // 1. 捕获当前预览画面
-            camera.setOneShotPreviewCallback((data, cam) -> {
-                Camera.Parameters parameters = cam.getParameters();
-                int width = parameters.getPreviewSize().width;
-                int height = parameters.getPreviewSize().height;
+            if (useUsbCamera) {
+                // USB 摄像头截图处理
+                if (mCameraHelper != null) {
+                    mCameraHelper.capturePicture(getExternalCacheDir().getAbsolutePath() + "/temp.jpg", new UVCCameraManager.CaptureCallback() {
+                        @Override
+                        public void onCaptureSuccess(String path) {
+                            android.graphics.Bitmap bitmap = android.graphics.BitmapFactory.decodeFile(path);
+                            if (bitmap != null) {
+                                processTouchDetection(bitmap, x, y);
+                            } else {
+                                runOnUiThread(() -> Toast.makeText(MainActivity.this, "截图失败", Toast.LENGTH_SHORT).show());
+                            }
+                        }
 
-                // 2. 将 NV21 数据转换为 Bitmap
-                android.graphics.YuvImage yuvImage = new android.graphics.YuvImage(data, android.graphics.ImageFormat.NV21, width, height, null);
-                java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
-                yuvImage.compressToJpeg(new Rect(0, 0, width, height), 90, out);
-                byte[] imageBytes = out.toByteArray();
-                android.graphics.Bitmap bitmap = android.graphics.BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.length);
-
-                // 3. 旋转 Bitmap 以匹配竖屏显示 (90度)
-                android.graphics.Matrix matrix = new android.graphics.Matrix();
-                matrix.postRotate(90);
-                android.graphics.Bitmap rotatedBitmap = android.graphics.Bitmap.createBitmap(bitmap, 0, 0, width, height, matrix, true);
-
-                // 4. 使用 YOLO 检测点击位置的物体
-                float scaleX = (float) rotatedBitmap.getWidth() / overlayView.getWidth();
-                float scaleY = (float) rotatedBitmap.getHeight() / overlayView.getHeight();
-                float scaledX = x * scaleX;
-                float scaledY = y * scaleY;
-
-                Log.d(TAG, String.format("Touch at (%.1f, %.1f), View size: %dx%d, Bitmap size: %dx%d, Scaled touch: (%.1f, %.1f)",
-                        x, y, overlayView.getWidth(), overlayView.getHeight(), 
-                        rotatedBitmap.getWidth(), rotatedBitmap.getHeight(), scaledX, scaledY));
-
-                Detection detection = yoloDetector.detect(rotatedBitmap, scaledX, scaledY);
-
-                if (detection != null) {
-                    android.graphics.RectF boxF = detection.boundingBox();
-                    
-                    synchronized (MainActivity.this) {
-                        // 将检测到的框从 Bitmap 坐标映射回 View 坐标
-                        targetRect = new Rect(
-                                (int) (boxF.left / scaleX),
-                                (int) (boxF.top / scaleY),
-                                (int) (boxF.right / scaleX),
-                                (int) (boxF.bottom / scaleY)
-                        );
-                        targetLabel = detection.categories().get(0).categoryName();
-                    }
-                    
-                    runOnUiThread(() -> {
-                        overlayView.setTargetRect(targetRect);
-                        overlayView.setTargetName(targetLabel);
-                        updateTargetMetrics(null);
-                        
-                        // 锁定目标后，自动进入“跟踪中”状态
-                        isTracking = true;
-                        trackingController.setTrackingEnabled(true);
-                        overlayView.setTrackingEnabled(true);
-                        trackingButton.setText(R.string.tracking_enabled);
-                        trackingButton.setBackgroundColor(ContextCompat.getColor(this, R.color.green));
-                        trackingStatus.setText(R.string.tracking_enabled);
-                        
-                        Toast.makeText(this, "已锁定并开启跟踪: " + targetLabel, Toast.LENGTH_SHORT).show();
-                        startTrackingLoop();
+                        @Override
+                        public void onCaptureFailed(Exception e) {
+                            runOnUiThread(() -> Toast.makeText(MainActivity.this, "截图失败: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+                        }
                     });
-                } else {
-                    stopTrackingAndClearUI();
-                    runOnUiThread(() -> Toast.makeText(this, "未检测到物体", Toast.LENGTH_SHORT).show());
                 }
-            });
+            } else if (camera != null) {
+                // 1. 捕获当前预览画面
+                camera.setOneShotPreviewCallback((data, cam) -> {
+                    Camera.Parameters parameters = cam.getParameters();
+                    int width = parameters.getPreviewSize().width;
+                    int height = parameters.getPreviewSize().height;
+
+                    // 2. 将 NV21 数据转换为 Bitmap
+                    android.graphics.YuvImage yuvImage = new android.graphics.YuvImage(data, android.graphics.ImageFormat.NV21, width, height, null);
+                    java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+                    yuvImage.compressToJpeg(new Rect(0, 0, width, height), 90, out);
+                    byte[] imageBytes = out.toByteArray();
+                    android.graphics.Bitmap bitmap = android.graphics.BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.length);
+
+                    // 3. 旋转 Bitmap 以匹配竖屏显示 (90度)
+                    android.graphics.Matrix matrix = new android.graphics.Matrix();
+                    matrix.postRotate(90);
+                    android.graphics.Bitmap rotatedBitmap = android.graphics.Bitmap.createBitmap(bitmap, 0, 0, width, height, matrix, true);
+                    if (bitmap != rotatedBitmap) bitmap.recycle();
+
+                    processTouchDetection(rotatedBitmap, x, y);
+                });
+            }
         }
+    }
+
+    private void processTouchDetection(android.graphics.Bitmap rotatedBitmap, float x, float y) {
+        // 4. 使用 YOLO 检测点击位置的物体
+        float scaleX = (float) rotatedBitmap.getWidth() / overlayView.getWidth();
+        float scaleY = (float) rotatedBitmap.getHeight() / overlayView.getHeight();
+        float scaledX = x * scaleX;
+        float scaledY = y * scaleY;
+
+        Log.d(TAG, String.format("Touch at (%.1f, %.1f), View size: %dx%d, Bitmap size: %dx%d, Scaled touch: (%.1f, %.1f)",
+                x, y, overlayView.getWidth(), overlayView.getHeight(), 
+                rotatedBitmap.getWidth(), rotatedBitmap.getHeight(), scaledX, scaledY));
+
+        Detection detection = yoloDetector.detect(rotatedBitmap, scaledX, scaledY);
+
+        if (detection != null) {
+            android.graphics.RectF boxF = detection.boundingBox();
+            
+            synchronized (MainActivity.this) {
+                // 将检测到的框从 Bitmap 坐标映射回 View 坐标
+                targetRect = new Rect(
+                        (int) (boxF.left / scaleX),
+                        (int) (boxF.top / scaleY),
+                        (int) (boxF.right / scaleX),
+                        (int) (boxF.bottom / scaleY)
+                );
+                targetLabel = detection.categories().get(0).categoryName();
+            }
+            
+            runOnUiThread(() -> {
+                overlayView.setTargetRect(targetRect);
+                overlayView.setTargetName(targetLabel);
+                updateTargetMetrics(null);
+                
+                // 锁定目标后，自动进入“跟踪中”状态
+                isTracking = true;
+                trackingController.setTrackingEnabled(true);
+                overlayView.setTrackingEnabled(true);
+                trackingButton.setText(R.string.tracking_enabled);
+                trackingButton.setBackgroundColor(ContextCompat.getColor(this, R.color.green));
+                trackingStatus.setText(R.string.tracking_enabled);
+                
+                Toast.makeText(this, "已锁定并开启跟踪: " + targetLabel, Toast.LENGTH_SHORT).show();
+                startTrackingLoop();
+            });
+        } else {
+            stopTrackingAndClearUI();
+            runOnUiThread(() -> Toast.makeText(this, "未检测到物体", Toast.LENGTH_SHORT).show());
+        }
+        rotatedBitmap.recycle();
     }
 
     private void updateTargetMetrics(TrackingController.TrackingResult result) {
@@ -517,16 +923,19 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
 
                 if (currentRect != null) {
                     // 如果不正在处理帧，则请求新帧进行实时检测更新位置
-                    if (!isProcessingFrame && camera != null) {
-                        isProcessingFrame = true;
-                        try {
-                            camera.setOneShotPreviewCallback((data, cam) -> {
-                                backgroundHandler.post(() -> processFrameForTracking(data, cam));
-                            });
-                        } catch (Exception e) {
-                            Log.e(TAG, "Failed to set preview callback: " + e.getMessage());
-                            isProcessingFrame = false;
+                    if (!isProcessingFrame) {
+                        if (!useUsbCamera && camera != null) {
+                            isProcessingFrame = true;
+                            try {
+                                camera.setOneShotPreviewCallback((data, cam) -> {
+                                    backgroundHandler.post(() -> processFrameForTracking(data, cam));
+                                });
+                            } catch (Exception e) {
+                                Log.e(TAG, "Failed to set preview callback: " + e.getMessage());
+                                isProcessingFrame = false;
+                            }
                         }
+                        // USB 摄像头的帧处理由 OnPreviewFrameListener 触发，无需主动请求
                     }
 
                     // 即使未开启无人机控制，也计算控制量以获取水平/垂直角度
@@ -637,62 +1046,56 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
     }
 
     @Override
-    public void surfaceCreated(SurfaceHolder holder) {
-        try {
-            camera = Camera.open();
-            Camera.Parameters params = camera.getParameters();
-            // 极致优化：将预览分辨率降低到 640x480
-            // 这将像素处理量降至最低，基本可以实现 YOLO 的实时满帧检测
-            params.setPreviewSize(640, 480);
-            camera.setParameters(params);
-            Camera.Size previewSize = camera.getParameters().getPreviewSize();
-            camera.setDisplayOrientation(90);
-            camera.setPreviewDisplay(holder);
-            camera.startPreview();
-
-            // 调整SurfaceView比例防止拉伸
-            runOnUiThread(() -> {
-                int screenWidth = getResources().getDisplayMetrics().widthPixels;
-                float aspect = (float) previewSize.width / previewSize.height; // 640/480
-                
-                View surfaceView = findViewById(R.id.surfaceView);
-                android.view.ViewGroup.LayoutParams lp = surfaceView.getLayoutParams();
-                lp.width = screenWidth;
-                lp.height = (int) (screenWidth * aspect);
-                surfaceView.setLayoutParams(lp);
-                
-                overlayView.setLayoutParams(lp);
-
-                // 同步更新跟踪控制器的画面尺寸，使其与覆盖层坐标系一致
-                trackingController.setFrameSize(lp.width, lp.height);
-            });
-        } catch (IOException e) {
-            Log.e(TAG, "Failed to open camera", e);
-        }
-    }
-
-    @Override
-    public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {}
-
-    @Override
-    public void surfaceDestroyed(SurfaceHolder holder) {
-        if (camera != null) {
-            camera.stopPreview();
-            camera.release();
-            camera = null;
-        }
-    }
-
-    @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == REQUEST_PERMISSIONS) {
+            boolean allGranted = true;
             for (int result : grantResults) {
                 if (result != PackageManager.PERMISSION_GRANTED) {
-                    Toast.makeText(this, "需要授予所有权限才能运行", Toast.LENGTH_SHORT).show();
-                    finish();
-                    return;
+                    allGranted = false;
+                    break;
                 }
+            }
+            if (allGranted) {
+                checkAndRegisterUsb();
+            } else {
+                Toast.makeText(this, "需要授予所有权限才能运行", Toast.LENGTH_SHORT).show();
+                finish();
+            }
+        }
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (mCameraHelper != null && surfaceView != null && surfaceView.isAvailable()) {
+            try {
+                mCameraHelper.register();
+            } catch (Exception e) {
+                Log.e(TAG, "Failed to register USB in onResume", e);
+            }
+        }
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        if (mCameraHelper != null) {
+            try {
+                mCameraHelper.unregister();
+            } catch (Exception e) {
+                Log.e(TAG, "Failed to unregister USB in onStop", e);
             }
         }
     }
@@ -700,14 +1103,44 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        
         stopTrackingLoop();
+        
         if (backgroundThread != null) {
-            backgroundThread.quitSafely();
+            try {
+                backgroundThread.quitSafely();
+            } catch (Exception e) {
+                Log.e(TAG, "Failed to quit background thread", e);
+            }
         }
-        bluetoothManager.disconnect();
+        
+        if (bluetoothManager != null) {
+            try {
+                bluetoothManager.disconnect();
+            } catch (Exception e) {
+                Log.e(TAG, "Failed to disconnect bluetooth", e);
+            }
+        }
+        
         if (camera != null) {
-            camera.stopPreview();
-            camera.release();
+            try {
+                camera.stopPreview();
+                camera.release();
+            } catch (Exception e) {
+                Log.e(TAG, "Failed to release phone camera", e);
+            } finally {
+                camera = null;
+            }
+        }
+        
+        if (mCameraHelper != null) {
+            try {
+                mCameraHelper.release();
+            } catch (Exception e) {
+                Log.e(TAG, "Failed to release USB camera helper", e);
+            } finally {
+                mCameraHelper = null;
+            }
         }
     }
 }

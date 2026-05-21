@@ -1,58 +1,58 @@
 [
     {
-        "merged": "C:\\Users\\xx.mu\\.gradle\\daemon\\8.2\\com.example.dronetracker.app-merged_res-31:\\drawable_bg_bottom_sheet.xml.flat",
-        "source": "C:\\Users\\xx.mu\\.gradle\\daemon\\8.2\\com.example.dronetracker.app-main-33:\\drawable\\bg_bottom_sheet.xml"
+        "merged": "com.example.dronetracker.app-merged_res-32:/layout_item_bluetooth_device.xml.flat",
+        "source": "com.example.dronetracker.app-main-34:/layout/item_bluetooth_device.xml"
     },
     {
-        "merged": "C:\\Users\\xx.mu\\.gradle\\daemon\\8.2\\com.example.dronetracker.app-merged_res-31:\\xml_data_extraction_rules.xml.flat",
-        "source": "C:\\Users\\xx.mu\\.gradle\\daemon\\8.2\\com.example.dronetracker.app-main-33:\\xml\\data_extraction_rules.xml"
+        "merged": "com.example.dronetracker.app-merged_res-32:/xml_data_extraction_rules.xml.flat",
+        "source": "com.example.dronetracker.app-main-34:/xml/data_extraction_rules.xml"
     },
     {
-        "merged": "C:\\Users\\xx.mu\\.gradle\\daemon\\8.2\\com.example.dronetracker.app-merged_res-31:\\layout_item_bluetooth_device.xml.flat",
-        "source": "C:\\Users\\xx.mu\\.gradle\\daemon\\8.2\\com.example.dronetracker.app-main-33:\\layout\\item_bluetooth_device.xml"
+        "merged": "com.example.dronetracker.app-merged_res-32:/drawable_seekbar_style.xml.flat",
+        "source": "com.example.dronetracker.app-main-34:/drawable/seekbar_style.xml"
     },
     {
-        "merged": "C:\\Users\\xx.mu\\.gradle\\daemon\\8.2\\com.example.dronetracker.app-merged_res-31:\\drawable_ic_launcher_background.xml.flat",
-        "source": "C:\\Users\\xx.mu\\.gradle\\daemon\\8.2\\com.example.dronetracker.app-main-33:\\drawable\\ic_launcher_background.xml"
+        "merged": "com.example.dronetracker.app-merged_res-32:/mipmap-anydpi-v26_ic_launcher.xml.flat",
+        "source": "com.example.dronetracker.app-main-34:/mipmap-anydpi-v26/ic_launcher.xml"
     },
     {
-        "merged": "C:\\Users\\xx.mu\\.gradle\\daemon\\8.2\\com.example.dronetracker.app-merged_res-31:\\drawable_ic_launcher_foreground.xml.flat",
-        "source": "C:\\Users\\xx.mu\\.gradle\\daemon\\8.2\\com.example.dronetracker.app-main-33:\\drawable\\ic_launcher_foreground.xml"
+        "merged": "com.example.dronetracker.app-merged_res-32:/drawable_ic_launcher_foreground.xml.flat",
+        "source": "com.example.dronetracker.app-main-34:/drawable/ic_launcher_foreground.xml"
     },
     {
-        "merged": "C:\\Users\\xx.mu\\.gradle\\daemon\\8.2\\com.example.dronetracker.app-merged_res-31:\\mipmap_ic_launcher.xml.flat",
-        "source": "C:\\Users\\xx.mu\\.gradle\\daemon\\8.2\\com.example.dronetracker.app-main-33:\\mipmap\\ic_launcher.xml"
+        "merged": "com.example.dronetracker.app-merged_res-32:/drawable_ic_launcher_background.xml.flat",
+        "source": "com.example.dronetracker.app-main-34:/drawable/ic_launcher_background.xml"
     },
     {
-        "merged": "C:\\Users\\xx.mu\\.gradle\\daemon\\8.2\\com.example.dronetracker.app-merged_res-31:\\drawable_ic_thumb.xml.flat",
-        "source": "C:\\Users\\xx.mu\\.gradle\\daemon\\8.2\\com.example.dronetracker.app-main-33:\\drawable\\ic_thumb.xml"
+        "merged": "com.example.dronetracker.app-merged_res-32:/mipmap_ic_launcher.xml.flat",
+        "source": "com.example.dronetracker.app-main-34:/mipmap/ic_launcher.xml"
     },
     {
-        "merged": "com.example.dronetracker.app-merged_res-31:/drawable_bg_tooltip.xml.flat",
-        "source": "com.example.dronetracker.app-main-33:/drawable/bg_tooltip.xml"
+        "merged": "com.example.dronetracker.app-merged_res-32:/layout_layout_bluetooth_bottom_sheet.xml.flat",
+        "source": "com.example.dronetracker.app-main-34:/layout/layout_bluetooth_bottom_sheet.xml"
     },
     {
-        "merged": "C:\\Users\\xx.mu\\.gradle\\daemon\\8.2\\com.example.dronetracker.app-merged_res-31:\\mipmap-anydpi-v26_ic_launcher.xml.flat",
-        "source": "C:\\Users\\xx.mu\\.gradle\\daemon\\8.2\\com.example.dronetracker.app-main-33:\\mipmap-anydpi-v26\\ic_launcher.xml"
+        "merged": "com.example.dronetracker.app-merged_res-32:/layout_activity_main.xml.flat",
+        "source": "com.example.dronetracker.app-main-34:/layout/activity_main.xml"
     },
     {
-        "merged": "C:\\Users\\xx.mu\\.gradle\\daemon\\8.2\\com.example.dronetracker.app-merged_res-31:\\layout_activity_main.xml.flat",
-        "source": "C:\\Users\\xx.mu\\.gradle\\daemon\\8.2\\com.example.dronetracker.app-main-33:\\layout\\activity_main.xml"
+        "merged": "com.example.dronetracker.app-merged_res-32:/xml_backup_rules.xml.flat",
+        "source": "com.example.dronetracker.app-main-34:/xml/backup_rules.xml"
     },
     {
-        "merged": "com.example.dronetracker.app-merged_res-31:/layout_activity_main.xml.flat",
-        "source": "com.example.dronetracker.app-main-33:/layout/activity_main.xml"
+        "merged": "com.example.dronetracker.app-merged_res-32:/xml_usb_device_filter.xml.flat",
+        "source": "com.example.dronetracker.app-main-34:/xml/usb_device_filter.xml"
     },
     {
-        "merged": "C:\\Users\\xx.mu\\.gradle\\daemon\\8.2\\com.example.dronetracker.app-merged_res-31:\\layout_layout_bluetooth_bottom_sheet.xml.flat",
-        "source": "C:\\Users\\xx.mu\\.gradle\\daemon\\8.2\\com.example.dronetracker.app-main-33:\\layout\\layout_bluetooth_bottom_sheet.xml"
+        "merged": "com.example.dronetracker.app-merged_res-32:/drawable_ic_thumb.xml.flat",
+        "source": "com.example.dronetracker.app-main-34:/drawable/ic_thumb.xml"
     },
     {
-        "merged": "C:\\Users\\xx.mu\\.gradle\\daemon\\8.2\\com.example.dronetracker.app-merged_res-31:\\drawable_seekbar_style.xml.flat",
-        "source": "C:\\Users\\xx.mu\\.gradle\\daemon\\8.2\\com.example.dronetracker.app-main-33:\\drawable\\seekbar_style.xml"
+        "merged": "com.example.dronetracker.app-merged_res-32:/drawable_bg_bottom_sheet.xml.flat",
+        "source": "com.example.dronetracker.app-main-34:/drawable/bg_bottom_sheet.xml"
     },
     {
-        "merged": "C:\\Users\\xx.mu\\.gradle\\daemon\\8.2\\com.example.dronetracker.app-merged_res-31:\\xml_backup_rules.xml.flat",
-        "source": "C:\\Users\\xx.mu\\.gradle\\daemon\\8.2\\com.example.dronetracker.app-main-33:\\xml\\backup_rules.xml"
+        "merged": "com.example.dronetracker.app-merged_res-32:/drawable_bg_tooltip.xml.flat",
+        "source": "com.example.dronetracker.app-main-34:/drawable/bg_tooltip.xml"
     }
 ]
