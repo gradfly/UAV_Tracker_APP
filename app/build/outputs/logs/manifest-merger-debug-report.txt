@@ -1,9 +1,9 @@
 -- Merging decision tree log ---
 manifest
-ADDED from E:\project\飞控\APP\app\src\main\AndroidManifest.xml:2:1-51:12
-INJECTED from E:\project\飞控\APP\app\src\main\AndroidManifest.xml:2:1-51:12
-INJECTED from E:\project\飞控\APP\app\src\main\AndroidManifest.xml:2:1-51:12
-INJECTED from E:\project\飞控\APP\app\src\main\AndroidManifest.xml:2:1-51:12
+ADDED from E:\project\飞控\APP\app\src\main\AndroidManifest.xml:2:1-52:12
+INJECTED from E:\project\飞控\APP\app\src\main\AndroidManifest.xml:2:1-52:12
+INJECTED from E:\project\飞控\APP\app\src\main\AndroidManifest.xml:2:1-52:12
+INJECTED from E:\project\飞控\APP\app\src\main\AndroidManifest.xml:2:1-52:12
 MERGED from [com.google.android.material:material:1.11.0] C:\Users\xx.mu\.gradle\caches\transforms-3\99dc24b8086e9e02f60cbc0643cdc897\transformed\material-1.11.0\AndroidManifest.xml:17:1-24:12
 MERGED from [androidx.constraintlayout:constraintlayout:2.1.4] C:\Users\xx.mu\.gradle\caches\transforms-3\1f371f754bd6786f9a76f8e2fd18482b\transformed\constraintlayout-2.1.4\AndroidManifest.xml:2:1-11:12
 MERGED from [androidx.appcompat:appcompat-resources:1.6.1] C:\Users\xx.mu\.gradle\caches\transforms-3\dd8395924473b069ee7a6f1edc69d57d\transformed\appcompat-resources-1.6.1\AndroidManifest.xml:17:1-22:12
@@ -251,8 +251,8 @@ MERGED from [com.google.android.odml:image:1.0.0-beta1] C:\Users\xx.mu\.gradle\c
 	android:minSdkVersion
 		INJECTED from E:\project\飞控\APP\app\src\main\AndroidManifest.xml
 application
-ADDED from E:\project\飞控\APP\app\src\main\AndroidManifest.xml:23:5-49:19
-INJECTED from E:\project\飞控\APP\app\src\main\AndroidManifest.xml:23:5-49:19
+ADDED from E:\project\飞控\APP\app\src\main\AndroidManifest.xml:23:5-50:19
+INJECTED from E:\project\飞控\APP\app\src\main\AndroidManifest.xml:23:5-50:19
 MERGED from [com.google.android.material:material:1.11.0] C:\Users\xx.mu\.gradle\caches\transforms-3\99dc24b8086e9e02f60cbc0643cdc897\transformed\material-1.11.0\AndroidManifest.xml:22:5-20
 MERGED from [com.google.android.material:material:1.11.0] C:\Users\xx.mu\.gradle\caches\transforms-3\99dc24b8086e9e02f60cbc0643cdc897\transformed\material-1.11.0\AndroidManifest.xml:22:5-20
 MERGED from [androidx.constraintlayout:constraintlayout:2.1.4] C:\Users\xx.mu\.gradle\caches\transforms-3\1f371f754bd6786f9a76f8e2fd18482b\transformed\constraintlayout-2.1.4\AndroidManifest.xml:9:5-20
@@ -288,55 +288,57 @@ MERGED from [com.google.android.odml:image:1.0.0-beta1] C:\Users\xx.mu\.gradle\c
 	android:appComponentFactory
 		ADDED from [androidx.core:core:1.9.0] C:\Users\xx.mu\.gradle\caches\transforms-3\a309491863f1cad1388d82071cb60f8c\transformed\core-1.9.0\AndroidManifest.xml:28:18-86
 	android:supportsRtl
-		ADDED from E:\project\飞控\APP\app\src\main\AndroidManifest.xml:29:9-35
+		ADDED from E:\project\飞控\APP\app\src\main\AndroidManifest.xml:30:9-35
 	android:label
-		ADDED from E:\project\飞控\APP\app\src\main\AndroidManifest.xml:28:9-41
+		ADDED from E:\project\飞控\APP\app\src\main\AndroidManifest.xml:29:9-41
 	android:fullBackupContent
 		ADDED from E:\project\飞控\APP\app\src\main\AndroidManifest.xml:26:9-54
+	android:roundIcon
+		ADDED from E:\project\飞控\APP\app\src\main\AndroidManifest.xml:28:9-54
 	android:icon
 		ADDED from E:\project\飞控\APP\app\src\main\AndroidManifest.xml:27:9-43
 	android:allowBackup
 		ADDED from E:\project\飞控\APP\app\src\main\AndroidManifest.xml:24:9-35
 	android:theme
-		ADDED from E:\project\飞控\APP\app\src\main\AndroidManifest.xml:30:9-50
+		ADDED from E:\project\飞控\APP\app\src\main\AndroidManifest.xml:31:9-50
 	android:dataExtractionRules
 		ADDED from E:\project\飞控\APP\app\src\main\AndroidManifest.xml:25:9-65
 activity#com.example.dronetracker.MainActivity
-ADDED from E:\project\飞控\APP\app\src\main\AndroidManifest.xml:31:9-45:20
+ADDED from E:\project\飞控\APP\app\src\main\AndroidManifest.xml:32:9-46:20
 	android:screenOrientation
-		ADDED from E:\project\飞控\APP\app\src\main\AndroidManifest.xml:34:13-49
+		ADDED from E:\project\飞控\APP\app\src\main\AndroidManifest.xml:35:13-49
 	android:exported
-		ADDED from E:\project\飞控\APP\app\src\main\AndroidManifest.xml:33:13-36
+		ADDED from E:\project\飞控\APP\app\src\main\AndroidManifest.xml:34:13-36
 	android:name
-		ADDED from E:\project\飞控\APP\app\src\main\AndroidManifest.xml:32:13-41
+		ADDED from E:\project\飞控\APP\app\src\main\AndroidManifest.xml:33:13-41
 intent-filter#action:name:android.intent.action.MAIN+category:name:android.intent.category.LAUNCHER
-ADDED from E:\project\飞控\APP\app\src\main\AndroidManifest.xml:35:13-38:29
+ADDED from E:\project\飞控\APP\app\src\main\AndroidManifest.xml:36:13-39:29
 action#android.intent.action.MAIN
-ADDED from E:\project\飞控\APP\app\src\main\AndroidManifest.xml:36:17-69
+ADDED from E:\project\飞控\APP\app\src\main\AndroidManifest.xml:37:17-69
 	android:name
-		ADDED from E:\project\飞控\APP\app\src\main\AndroidManifest.xml:36:25-66
+		ADDED from E:\project\飞控\APP\app\src\main\AndroidManifest.xml:37:25-66
 category#android.intent.category.LAUNCHER
-ADDED from E:\project\飞控\APP\app\src\main\AndroidManifest.xml:37:17-77
+ADDED from E:\project\飞控\APP\app\src\main\AndroidManifest.xml:38:17-77
 	android:name
-		ADDED from E:\project\飞控\APP\app\src\main\AndroidManifest.xml:37:27-74
+		ADDED from E:\project\飞控\APP\app\src\main\AndroidManifest.xml:38:27-74
 intent-filter#action:name:android.hardware.usb.action.USB_DEVICE_ATTACHED
-ADDED from E:\project\飞控\APP\app\src\main\AndroidManifest.xml:39:13-41:29
+ADDED from E:\project\飞控\APP\app\src\main\AndroidManifest.xml:40:13-42:29
 action#android.hardware.usb.action.USB_DEVICE_ATTACHED
-ADDED from E:\project\飞控\APP\app\src\main\AndroidManifest.xml:40:17-90
+ADDED from E:\project\飞控\APP\app\src\main\AndroidManifest.xml:41:17-90
 	android:name
-		ADDED from E:\project\飞控\APP\app\src\main\AndroidManifest.xml:40:25-87
+		ADDED from E:\project\飞控\APP\app\src\main\AndroidManifest.xml:41:25-87
 meta-data#android.hardware.usb.action.USB_DEVICE_ATTACHED
-ADDED from E:\project\飞控\APP\app\src\main\AndroidManifest.xml:42:13-44:61
+ADDED from E:\project\飞控\APP\app\src\main\AndroidManifest.xml:43:13-45:61
 	android:resource
-		ADDED from E:\project\飞控\APP\app\src\main\AndroidManifest.xml:44:17-58
+		ADDED from E:\project\飞控\APP\app\src\main\AndroidManifest.xml:45:17-58
 	android:name
-		ADDED from E:\project\飞控\APP\app\src\main\AndroidManifest.xml:43:17-79
+		ADDED from E:\project\飞控\APP\app\src\main\AndroidManifest.xml:44:17-79
 activity#com.example.dronetracker.BluetoothActivity
-ADDED from E:\project\飞控\APP\app\src\main\AndroidManifest.xml:46:9-48:40
+ADDED from E:\project\飞控\APP\app\src\main\AndroidManifest.xml:47:9-49:40
 	android:exported
-		ADDED from E:\project\飞控\APP\app\src\main\AndroidManifest.xml:48:13-37
+		ADDED from E:\project\飞控\APP\app\src\main\AndroidManifest.xml:49:13-37
 	android:name
-		ADDED from E:\project\飞控\APP\app\src\main\AndroidManifest.xml:47:13-46
+		ADDED from E:\project\飞控\APP\app\src\main\AndroidManifest.xml:48:13-46
 uses-feature#android.hardware.usb.host
 ADDED from [org.uvccamera:lib:0.0.13] C:\Users\xx.mu\.gradle\caches\transforms-3\27dc35a155966ef63e0b128eb87d3e78\transformed\lib-0.0.13\AndroidManifest.xml:12:5-14:36
 	android:required
@@ -474,4 +476,4 @@ ADDED from [com.google.ai.edge.litert:litert-gpu-api:1.4.0] C:\Users\xx.mu\.grad
 	android:name
 		ADDED from [com.google.ai.edge.litert:litert-gpu-api:1.4.0] C:\Users\xx.mu\.gradle\caches\transforms-3\20dab135b71ad1a01643128e9e4b21c7\transformed\litert-gpu-api-1.4.0\AndroidManifest.xml:9:13-40
 uses-permission#android.permission.READ_PHONE_STATE
-IMPLIED from E:\project\飞控\APP\app\src\main\AndroidManifest.xml:2:1-51:12 reason: org.tensorflow.lite.gpu.api has a targetSdkVersion < 4
+IMPLIED from E:\project\飞控\APP\app\src\main\AndroidManifest.xml:2:1-52:12 reason: org.tensorflow.lite.gpu.api has a targetSdkVersion < 4
