@@ -14,10 +14,36 @@ public class DroneCommand {
     }
 
     public DroneCommand(float yaw, float throttle, float pitch, float roll) {
-        this.yaw = clamp(applyDeadzone(yaw, 0.05f), -0.3f, 0.3f);
-        this.throttle = clamp(applyDeadzone(throttle, 0.05f), -0.3f, 0.3f);
-        this.pitch = clamp(applyDeadzone(pitch, 0.05f), -0.3f, 0.3f);
-        this.roll = clamp(roll, -1, 1);
+        // 1. 计算平滑后的 pitch
+        float p = applyDeadzone(pitch, 0.4f);
+        if (p != 0) {
+            // 如果超过死区，减去偏移量实现平滑启动（从0开始增加）
+            p = p - Math.signum(p) * 0.4f;
+        }
+        this.pitch = clamp(p, -0.4f, 0.4f);
+
+        // 2. 只有当 pitch 为 0 时，才更新 yaw 和 throttle
+        if (this.pitch == 0) {
+            // 处理 yaw
+            float y = applyDeadzone(yaw, 0.25f);
+            if (y != 0) {
+                y = y - Math.signum(y) * 0.25f;
+            }
+            this.yaw = clamp(y, -0.6f, 0.6f);
+
+            // 处理 throttle
+            float t = applyDeadzone(throttle, 0.3f);
+            if (t != 0) {
+                t = t - Math.signum(t) * 0.2f;
+            }
+            this.throttle = clamp(t, -0.6f, 0.8f);
+        } else {
+            // 如果 pitch 不为 0，则强制 yaw 和 throttle 为 0
+            this.yaw = 0;
+            this.throttle = 0;
+        }
+        
+        this.roll = 0; // 暂不使用 roll
     }
 
     private float applyDeadzone(float value, float deadzone) {
@@ -51,9 +77,9 @@ public class DroneCommand {
     public byte[] toBytes() {
         byte[] data = new byte[4];
         data[0] = (byte) 0xAA;
-        data[1] = (byte) (yaw * 150);
+        data[1] = (byte) (yaw * 80);
         data[2] = (byte) (throttle  * 100);
-        data[3] = (byte) (pitch * 100);
+        data[3] = (byte) (pitch * 50);
         //data[4] = (byte) (roll * 100);
         return data;
     }

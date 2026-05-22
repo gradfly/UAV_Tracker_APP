@@ -3452,6 +3452,7 @@ id rectangles
 id report_drawn
 id reverseSawtooth
 id right
+id rightControlArea
 id rightToLeft
 id right_icon
 id right_side

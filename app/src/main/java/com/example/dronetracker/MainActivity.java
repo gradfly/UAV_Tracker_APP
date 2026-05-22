@@ -888,9 +888,9 @@ public class MainActivity extends AppCompatActivity {
         runOnUiThread(() -> {
             if (result != null) {
                 DroneCommand cmd = result.command;
-                horizontalAngle.setText(String.format(java.util.Locale.CHINA, "水平距离: %d px, %.2f", pixelDX, cmd.getYaw()*100));
-                verticalAngle.setText(String.format(java.util.Locale.CHINA, "竖直距离: %d px, %.2f", pixelDY, cmd.getThrottle()*100));
-                distanceValue.setText(String.format(java.util.Locale.CHINA, "远近距离: %.1f, %.2f", estimatedDistance, cmd.getPitch()*100));
+                horizontalAngle.setText(String.format(java.util.Locale.CHINA, "水平距离: %d px, %d", pixelDX, (int)(cmd.getYaw()*80)));
+                verticalAngle.setText(String.format(java.util.Locale.CHINA, "竖直距离: %d px, %d", pixelDY, (int)(cmd.getThrottle()*100)));
+                distanceValue.setText(String.format(java.util.Locale.CHINA, "远近距离: %.1f, %d", estimatedDistance, (int)(cmd.getPitch()*50)));
             } else {
                 horizontalAngle.setText(String.format(java.util.Locale.CHINA, "水平距离: %d px", pixelDX));
                 verticalAngle.setText(String.format(java.util.Locale.CHINA, "竖直距离: %d px", pixelDY));

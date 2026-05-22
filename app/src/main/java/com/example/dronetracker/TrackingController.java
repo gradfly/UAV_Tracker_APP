@@ -3,8 +3,8 @@ package com.example.dronetracker;
 import android.graphics.Rect;
 
 public class TrackingController {
-    public static final float FOV_HORIZONTAL = 60.0f;//fpv摄像头水平视角
-    public static final float FOV_VERTICAL = 45.0f;//fpv摄像头竖直视角
+    public static final float FOV_HORIZONTAL = 140.0f;//fpv摄像头水平视角
+    public static final float FOV_VERTICAL = 80.0f;//fpv摄像头竖直视角
 
     private PIDController yawController;
     private PIDController throttleController;
@@ -14,12 +14,17 @@ public class TrackingController {
     private int frameWidth;
     private int frameHeight;
 
+    private float lastYaw = 0;
+    private float lastThrottle = 0;
+    private float lastPitch = 0;
+    private static final float ALPHA = 0.4f; // 滤波系数，0.1-1.0，越小越平滑
+
     public TrackingController() {
         yawController = new PIDController(0.02f, 0.000f, 0.01f);//ki=0.001
         throttleController = new PIDController(0.02f, 0.000f, 0.01f);//ki=0.001
-        pitchController = new PIDController(0.05f, 0.00f, 0.1f);//ki=0.01
+        pitchController = new PIDController(0.2f, 0.00f, 0.1f);//ki=0.01
         // 初始化默认距离，对应进度条中值50
-        onProgressChanged(20);
+        onProgressChanged(40);
         trackingEnabled = false;
         frameWidth = 1920;
         frameHeight = 1080;
@@ -36,6 +41,9 @@ public class TrackingController {
             yawController.reset();
             throttleController.reset();
             pitchController.reset();
+            lastYaw = 0;
+            lastThrottle = 0;
+            lastPitch = 0;
         }
     }
 
@@ -43,8 +51,8 @@ public class TrackingController {
         return trackingEnabled;
     }
 
-    public void setTargetDistanceRatio(float ratio) {
-        this.targetDistanceRatio = ratio * 10.0f;
+    public void setTargetDistanceRatio(float value) {
+        this.targetDistanceRatio = value;
     }
 
     /**
@@ -52,9 +60,9 @@ public class TrackingController {
      * @param progress SeekBar进度 (0-100)
      */
     public void onProgressChanged(int progress) {
-        // 进度0-100 映射到 ratio 0.1-1.0
-        float ratio = 0.1f + (progress / 100.0f * 0.9f);
-        setTargetDistanceRatio(ratio);
+        // 进度0-100 映射到 10.0-1.0，与UI显示逻辑完全一致
+        float value = 10.0f - (progress / 100.0f * 9.0f);
+        setTargetDistanceRatio(value);
     }
 
     public float getTargetDistanceRatio() {
@@ -90,9 +98,18 @@ public class TrackingController {
         float sizeError = estimatedDistance - targetDistanceRatio;
         float pitchOutput = pitchController.compute(sizeError, deltaTime);
 
-        DroneCommand command = new DroneCommand(yawOutput, throttleOutput, pitchOutput, 0);
+        // 一阶低通滤波，平滑输出指令
+        lastYaw = lastYaw + clamp(ALPHA * (yawOutput - lastYaw), -5f, 5f);
+        lastThrottle = lastThrottle + clamp(ALPHA * (throttleOutput - lastThrottle), -5f, 5f);
+        lastPitch = lastPitch + clamp(ALPHA * (pitchOutput - lastPitch), -1f, 1f);
+
+        DroneCommand command = new DroneCommand(lastYaw, lastThrottle, lastPitch, 0);
 
         return new TrackingResult(horizontalAngle, verticalAngle, command);
+    }
+
+    private float clamp(float value, float min, float max) {
+        return Math.max(min, Math.min(max, value));
     }
 
     public static class TrackingResult {
