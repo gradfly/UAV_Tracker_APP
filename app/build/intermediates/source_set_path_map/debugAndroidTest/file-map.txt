@@ -1,0 +1,6 @@
+com.example.dronetracker.test.app-annotation-experimental-1.4.1-0 C:\Users\xx.mu\.gradle\caches\transforms-3\667b2a62e136665cdc6ea13a68359680\transformed\annotation-experimental-1.4.1\res
+com.example.dronetracker.test.app-core-1.5.0-1 C:\Users\xx.mu\.gradle\caches\transforms-3\c8607414e9ae04aaf80b1bde0a39360d\transformed\core-1.5.0\res
+com.example.dronetracker.test.app-androidTest-2 E:\project\飞控\APP\app\build\generated\res\resValues\androidTest\debug
+com.example.dronetracker.test.app-mergeDebugAndroidTestResources-3 E:\project\飞控\APP\app\build\intermediates\incremental\debugAndroidTest\mergeDebugAndroidTestResources\merged.dir
+com.example.dronetracker.test.app-mergeDebugAndroidTestResources-4 E:\project\飞控\APP\app\build\intermediates\incremental\debugAndroidTest\mergeDebugAndroidTestResources\stripped.dir
+com.example.dronetracker.test.app-merged_res-5 E:\project\飞控\APP\app\build\intermediates\merged_res\debugAndroidTest

@@ -1,0 +1,3 @@
+com.example.dronetracker.test
+style WhiteBackgroundDialogTheme
+style WhiteBackgroundTheme
