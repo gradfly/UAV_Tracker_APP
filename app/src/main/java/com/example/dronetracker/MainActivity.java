@@ -641,29 +641,55 @@ public class MainActivity extends AppCompatActivity {
 
     @SuppressLint("MissingPermission")
     private void connectToDrone() {
-        BluetoothAdapter adapter = BluetoothAdapter.getDefaultAdapter();
-        Set<BluetoothDevice> pairedDevices = adapter.getBondedDevices();
+        List<BluetoothDevice> deviceList = new ArrayList<>();
+        BottomSheetDialog bottomSheetDialog = new BottomSheetDialog(this);
+        
+        BluetoothDeviceAdapter deviceAdapter = new BluetoothDeviceAdapter(deviceList, device -> {
+            bluetoothManager.stopScan();
+            bluetoothButton.setText(R.string.connecting);
+            bluetoothManager.connectToDevice(device);
+            bottomSheetDialog.dismiss();
+        });
 
-        if (pairedDevices != null && !pairedDevices.isEmpty()) {
-            List<BluetoothDevice> deviceList = new ArrayList<>(pairedDevices);
-            
-            BottomSheetDialog bottomSheetDialog = new BottomSheetDialog(this);
-            View bottomSheetView = LayoutInflater.from(this).inflate(R.layout.layout_bluetooth_bottom_sheet, null);
-            bottomSheetDialog.setContentView(bottomSheetView);
+        View bottomSheetView = LayoutInflater.from(this).inflate(R.layout.layout_bluetooth_bottom_sheet, null);
+        bottomSheetDialog.setContentView(bottomSheetView);
 
-            RecyclerView recyclerView = bottomSheetView.findViewById(R.id.deviceRecyclerView);
-            recyclerView.setLayoutManager(new LinearLayoutManager(this));
-            
-            BluetoothDeviceAdapter deviceAdapter = new BluetoothDeviceAdapter(deviceList, device -> {
-                bluetoothButton.setText(R.string.connecting);
-                bluetoothManager.connectToDevice(device);
-                bottomSheetDialog.dismiss();
+        RecyclerView recyclerView = bottomSheetView.findViewById(R.id.deviceRecyclerView);
+        recyclerView.setLayoutManager(new LinearLayoutManager(this));
+        recyclerView.setAdapter(deviceAdapter);
+
+        bottomSheetDialog.setOnDismissListener(dialog -> bluetoothManager.stopScan());
+        bottomSheetDialog.show();
+
+        // 开始扫描 BLE 设备
+        bluetoothManager.startScan(device -> {
+            runOnUiThread(() -> {
+                boolean exists = false;
+                for (BluetoothDevice d : deviceList) {
+                    if (d.getAddress().equals(device.getAddress())) {
+                        exists = true;
+                        break;
+                    }
+                }
+                if (!exists) {
+                    deviceList.add(device);
+                    deviceAdapter.notifyItemInserted(deviceList.size() - 1);
+                }
             });
-            recyclerView.setAdapter(deviceAdapter);
+        });
 
-            bottomSheetDialog.show();
-        } else {
-            Toast.makeText(this, R.string.no_paired_devices, Toast.LENGTH_LONG).show();
+        // 也可以先把已配对的设备加进去
+        BluetoothAdapter adapter = BluetoothAdapter.getDefaultAdapter();
+        if (adapter != null) {
+            Set<BluetoothDevice> pairedDevices = adapter.getBondedDevices();
+            if (pairedDevices != null) {
+                for (BluetoothDevice device : pairedDevices) {
+                    if (!deviceList.contains(device)) {
+                        deviceList.add(device);
+                    }
+                }
+                deviceAdapter.notifyDataSetChanged();
+            }
         }
     }
 
