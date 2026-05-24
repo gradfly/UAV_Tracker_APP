@@ -55,6 +55,7 @@ public class MainActivity extends AppCompatActivity {
     private SeekBar distanceSlider;
     private TextView sliderValueTip;
     private Button bluetoothButton, trackingButton, switchCameraButton;
+    private Button btnTurnLeft, btnForward, btnTurnRight, btnLeft, btnTakeoff, btnRight, btnUp, btnBackward, btnDown;
 
     private ActivityResultLauncher<Intent> bluetoothEnableLauncher;
 
@@ -72,6 +73,8 @@ public class MainActivity extends AppCompatActivity {
     private boolean isTracking = false;
     private boolean isBluetoothConnected = false;
     private boolean isProcessingFrame = false;
+    private boolean isFlying = false;
+    private long lastFlightCommandTime = 0;
 
     // USB Camera members
     private UVCCameraManager mCameraHelper;
@@ -134,6 +137,47 @@ public class MainActivity extends AppCompatActivity {
         bluetoothButton.setOnClickListener(v -> toggleBluetooth());
         trackingButton.setOnClickListener(v -> toggleTracking());
         switchCameraButton.setOnClickListener(v -> showCameraSwitchDialog());
+
+        initFlightControls();
+    }
+
+    private void initFlightControls() {
+        btnTurnLeft.setOnClickListener(v -> sendFlightCommand(new byte[]{(byte) 0x80, (byte) 0x10}));
+        btnForward.setOnClickListener(v -> sendFlightCommand(new byte[]{(byte) 0x80, (byte) 0x03}));
+        btnTurnRight.setOnClickListener(v -> sendFlightCommand(new byte[]{(byte) 0x80, (byte) 0x11}));
+        btnLeft.setOnClickListener(v -> sendFlightCommand(new byte[]{(byte) 0x80, (byte) 0x05}));
+        btnTakeoff.setOnClickListener(v -> {
+            if (!isFlying) {
+                if (sendFlightCommand(new byte[]{(byte) 0x80, (byte) 0x02})) {
+                    btnTakeoff.setText("降落");
+                    isFlying = true;
+                }
+            } else {
+                if (sendFlightCommand(new byte[]{(byte) 0x80, (byte) 0x09})) {
+                    btnTakeoff.setText("起飞");
+                    isFlying = false;
+                }
+            }
+        });
+        btnRight.setOnClickListener(v -> sendFlightCommand(new byte[]{(byte) 0x80, (byte) 0x06}));
+        btnUp.setOnClickListener(v -> sendFlightCommand(new byte[]{(byte) 0x80, (byte) 0x12}));
+        btnBackward.setOnClickListener(v -> sendFlightCommand(new byte[]{(byte) 0x80, (byte) 0x04}));
+        btnDown.setOnClickListener(v -> sendFlightCommand(new byte[]{(byte) 0x80, (byte) 0x13}));
+    }
+
+    private boolean sendFlightCommand(byte[] data) {
+        if (isBluetoothConnected && bluetoothManager != null) {
+            long currentTime = System.currentTimeMillis();
+            if (currentTime - lastFlightCommandTime < 2000) {
+                return false;
+            }
+            bluetoothManager.sendRawData(data);
+            lastFlightCommandTime = currentTime;
+            return true;
+        } else {
+            Toast.makeText(this, "蓝牙未连接", Toast.LENGTH_SHORT).show();
+            return false;
+        }
     }
 
     private void initUsbCamera() {
@@ -501,6 +545,16 @@ public class MainActivity extends AppCompatActivity {
         bluetoothButton = findViewById(R.id.bluetoothButton);
         trackingButton = findViewById(R.id.trackingButton);
         switchCameraButton = findViewById(R.id.switchCameraButton);
+
+        btnTurnLeft = findViewById(R.id.btnTurnLeft);
+        btnForward = findViewById(R.id.btnForward);
+        btnTurnRight = findViewById(R.id.btnTurnRight);
+        btnLeft = findViewById(R.id.btnLeft);
+        btnTakeoff = findViewById(R.id.btnTakeoff);
+        btnRight = findViewById(R.id.btnRight);
+        btnUp = findViewById(R.id.btnUp);
+        btnBackward = findViewById(R.id.btnBackward);
+        btnDown = findViewById(R.id.btnDown);
 
         // 设置距离滑块长度为屏幕高度的一半
         distanceSlider.post(() -> {

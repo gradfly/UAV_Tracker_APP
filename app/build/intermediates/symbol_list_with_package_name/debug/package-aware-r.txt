@@ -2996,8 +2996,6 @@ drawable ic_arrow_back_black_24
 drawable ic_clear_black_24
 drawable ic_clock_black_24dp
 drawable ic_keyboard_black_24dp
-drawable ic_launcher_background
-drawable ic_launcher_foreground
 drawable ic_m3_chip_check
 drawable ic_m3_chip_checked_circle
 drawable ic_m3_chip_close
@@ -3177,10 +3175,20 @@ id bestChoice
 id blocking
 id bluetoothButton
 id bottom
+id bottomButtonLayout
 id bounce
 id bounceBoth
 id bounceEnd
 id bounceStart
+id btnBackward
+id btnDown
+id btnForward
+id btnLeft
+id btnRight
+id btnTakeoff
+id btnTurnLeft
+id btnTurnRight
+id btnUp
 id buttonPanel
 id cache_measures
 id callMeasure
@@ -3280,6 +3288,7 @@ id fitStart
 id fitToContents
 id fitXY
 id fixed
+id flightControlPanel
 id flip
 id floating
 id forever

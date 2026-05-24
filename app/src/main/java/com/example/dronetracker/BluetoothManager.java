@@ -21,6 +21,10 @@ import java.util.UUID;
 public class BluetoothManager {
     private static final String TAG = "BluetoothManager";
 
+    // Target UUID specified by user
+    private static final UUID TARGET_SERVICE_UUID = UUID.fromString("0000FFF0-0000-1000-8000-00805F9B34FB");
+    private static final UUID TARGET_CHARACTERISTIC_UUID = UUID.fromString("0000FFF2-0000-1000-8000-00805F9B34FB");
+
     // Common BLE Serial UUIDs (HM-10, JDY-08 etc.)
     private static final UUID SERVICE_UUID = UUID.fromString("0000FFE0-0000-1000-8000-00805F9B34FB");
     private static final UUID CHARACTERISTIC_UUID = UUID.fromString("0000FFE1-0000-1000-8000-00805F9B34FB");
@@ -145,6 +149,14 @@ public class BluetoothManager {
         }
         
         byte[] data = command.toBytes();
+        sendRawData(data);
+    }
+
+    @SuppressLint("MissingPermission")
+    public void sendRawData(byte[] data) {
+        if (!isConnected() || writeCharacteristic == null) {
+            return;
+        }
         writeCharacteristic.setValue(data);
         writeCharacteristic.setWriteType(BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE);
         bluetoothGatt.writeCharacteristic(writeCharacteristic);
@@ -186,10 +198,29 @@ public class BluetoothManager {
     };
 
     private void findWriteCharacteristic(BluetoothGatt gatt) {
-        // Try common BLE serial services
-        BluetoothGattService service = gatt.getService(SERVICE_UUID);
+        // 1. Try target UUID specified by user (usually inside FFF0 service)
+        BluetoothGattService service = gatt.getService(TARGET_SERVICE_UUID);
         if (service != null) {
-            writeCharacteristic = service.getCharacteristic(CHARACTERISTIC_UUID);
+            writeCharacteristic = service.getCharacteristic(TARGET_CHARACTERISTIC_UUID);
+        }
+
+        // 2. If not found in FFF0, search all services for characteristic FFF2
+        if (writeCharacteristic == null) {
+            for (BluetoothGattService s : gatt.getServices()) {
+                BluetoothGattCharacteristic c = s.getCharacteristic(TARGET_CHARACTERISTIC_UUID);
+                if (c != null) {
+                    writeCharacteristic = c;
+                    break;
+                }
+            }
+        }
+
+        // 3. Try common BLE serial services (FFE0/FFE1)
+        if (writeCharacteristic == null) {
+            service = gatt.getService(SERVICE_UUID);
+            if (service != null) {
+                writeCharacteristic = service.getCharacteristic(CHARACTERISTIC_UUID);
+            }
         }
 
         // Try Nordic UART if not found

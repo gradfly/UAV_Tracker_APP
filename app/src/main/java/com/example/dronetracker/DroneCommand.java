@@ -32,11 +32,11 @@ public class DroneCommand {
             this.yaw = clamp(y, -0.6f, 0.6f);
 
             // 处理 throttle
-            float t = applyDeadzone(throttle, 0.3f);
+            float t = applyDeadzone(throttle, 0.2f);
             if (t != 0) {
                 t = t - Math.signum(t) * 0.2f;
             }
-            this.throttle = clamp(t, -0.6f, 0.8f);
+            this.throttle = clamp(t, -0.3f, 0.8f);
         } else {
             // 如果 pitch 不为 0，则强制 yaw 和 throttle 为 0
             this.yaw = 0;
