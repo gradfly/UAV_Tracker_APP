@@ -809,6 +809,9 @@ public class MainActivity extends AppCompatActivity {
             startTrackingLoop();
         } else {
             // 如果当前正在跟踪，点击按钮则停止跟踪并清除目标
+            if (isBluetoothConnected && bluetoothManager != null) {
+                bluetoothManager.sendRawData(DroneCommand.TRACKING_STOP_COMMAND);
+            }
             stopTrackingAndClearUI();
         }
     }

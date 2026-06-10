@@ -6,6 +6,8 @@ public class DroneCommand {
     private float pitch;
     private float roll;
 
+    public static final byte[] TRACKING_STOP_COMMAND = {(byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF};
+
     public DroneCommand() {
         this.yaw = 0;
         this.throttle = 0;
