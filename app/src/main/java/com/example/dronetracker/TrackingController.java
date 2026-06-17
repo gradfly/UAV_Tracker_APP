@@ -3,11 +3,13 @@ package com.example.dronetracker;
 import android.graphics.Rect;
 
 public class TrackingController {
-    public static final float FOV_HORIZONTAL = 140.0f;//fpv摄像头水平视角
-    public static final float FOV_VERTICAL = 80.0f;//fpv摄像头竖直视角
+//    public static final float FOV_HORIZONTAL = 140.0f;//fpv摄像头水平视角
+//    public static final float FOV_VERTICAL = 80.0f;//fpv摄像头竖直视角
+    public static final float FOV_HORIZONTAL = 50.0f;//手机摄像头水平视角
+    public static final float FOV_VERTICAL = 100.0f;//手机摄像头竖直视角
 
     private PIDController yawController;
-    private PIDController throttleController;
+    private PIDController PoszController;
     private PIDController pitchController;
     private float targetDistanceRatio;
     private boolean trackingEnabled;
@@ -15,13 +17,13 @@ public class TrackingController {
     private int frameHeight;
 
     private float lastYaw = 0;
-    private float lastThrottle = 0;
+    private float lastPosz = 0;
     private float lastPitch = 0;
     private static final float ALPHA = 0.4f; // 滤波系数，0.1-1.0，越小越平滑
 
     public TrackingController() {
-        yawController = new PIDController(0.02f, 0.000f, 0.01f);//ki=0.001
-        throttleController = new PIDController(0.02f, 0.000f, 0.01f);//ki=0.001
+        yawController = new PIDController(1.0f, 0.000f, 0.01f);//ki=0.001
+        PoszController = new PIDController(0.15f, 0.000f, 0.05f);//ki=0.001, 映射50度到5.0输出
         pitchController = new PIDController(0.2f, 0.00f, 0.1f);//ki=0.01
         // 初始化默认距离，对应进度条中值50
         onProgressChanged(40);
@@ -39,10 +41,10 @@ public class TrackingController {
         this.trackingEnabled = enabled;
         if (!enabled) {
             yawController.reset();
-            throttleController.reset();
+            PoszController.reset();
             pitchController.reset();
             lastYaw = 0;
-            lastThrottle = 0;
+            lastPosz = 0;
             lastPitch = 0;
         }
     }
@@ -89,9 +91,9 @@ public class TrackingController {
         float verticalAngle = verticalOffset * FOV_VERTICAL;
 
         float yawOutput = yawController.compute(horizontalAngle, deltaTime);
-        // verticalAngle 已经定义为“上正下负”，所以油门（throttle）输出应与 verticalAngle 同向
+        // verticalAngle 已经定义为“上正下负”，所以油门（Posz）输出应与 verticalAngle 同向
         // 如果目标在上方 (verticalAngle > 0)，无人机需要上升
-        float throttleOutput = throttleController.compute(verticalAngle, deltaTime);
+        float PoszOutput = PoszController.compute(verticalAngle, deltaTime);
 
         float areaRatio = (float) (targetRect.width() * targetRect.height()) / (frameWidth * frameHeight);
         float estimatedDistance = 1.0f / (float) Math.sqrt(areaRatio + 0.01f);
@@ -100,10 +102,10 @@ public class TrackingController {
 
         // 一阶低通滤波，平滑输出指令
         lastYaw = lastYaw + clamp(ALPHA * (yawOutput - lastYaw), -5f, 5f);
-        lastThrottle = lastThrottle + clamp(ALPHA * (throttleOutput - lastThrottle), -5f, 5f);
-        lastPitch = lastPitch + clamp(ALPHA * (pitchOutput - lastPitch), -1f, 1f);
+        lastPosz = lastPosz + clamp(ALPHA * (PoszOutput - lastPosz), -5f, 5f);
+        lastPitch = lastPitch + clamp(ALPHA * (pitchOutput - lastPitch), -2f, 2f);
 
-        DroneCommand command = new DroneCommand(lastYaw, lastThrottle, lastPitch, 0);
+        DroneCommand command = new DroneCommand(lastYaw, lastPosz, lastPitch, 0);
 
         return new TrackingResult(horizontalAngle, verticalAngle, command);
     }
