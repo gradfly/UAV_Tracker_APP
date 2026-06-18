@@ -3,24 +3,24 @@
 3    package="com.example.dronetracker.test" >
 4
 5    <uses-sdk
-5-->E:\project\飞控\APP\app\build\intermediates\tmp\manifest\androidTest\debug\tempFile1ProcessTestManifest15559418757596918541.xml:5:5-74
+5-->E:\project\飞控\APP\app\build\intermediates\tmp\manifest\androidTest\debug\tempFile1ProcessTestManifest16612687265865647561.xml:5:5-74
 6        android:minSdkVersion="24"
-6-->E:\project\飞控\APP\app\build\intermediates\tmp\manifest\androidTest\debug\tempFile1ProcessTestManifest15559418757596918541.xml:5:15-41
+6-->E:\project\飞控\APP\app\build\intermediates\tmp\manifest\androidTest\debug\tempFile1ProcessTestManifest16612687265865647561.xml:5:15-41
 7        android:targetSdkVersion="29" />
-7-->E:\project\飞控\APP\app\build\intermediates\tmp\manifest\androidTest\debug\tempFile1ProcessTestManifest15559418757596918541.xml:5:42-71
+7-->E:\project\飞控\APP\app\build\intermediates\tmp\manifest\androidTest\debug\tempFile1ProcessTestManifest16612687265865647561.xml:5:42-71
 8
 9    <instrumentation
-9-->E:\project\飞控\APP\app\build\intermediates\tmp\manifest\androidTest\debug\tempFile1ProcessTestManifest15559418757596918541.xml:11:5-15:74
+9-->E:\project\飞控\APP\app\build\intermediates\tmp\manifest\androidTest\debug\tempFile1ProcessTestManifest16612687265865647561.xml:11:5-15:74
 10        android:name="androidx.test.runner.AndroidJUnitRunner"
-10-->E:\project\飞控\APP\app\build\intermediates\tmp\manifest\androidTest\debug\tempFile1ProcessTestManifest15559418757596918541.xml:11:22-76
+10-->E:\project\飞控\APP\app\build\intermediates\tmp\manifest\androidTest\debug\tempFile1ProcessTestManifest16612687265865647561.xml:11:22-76
 11        android:functionalTest="false"
-11-->E:\project\飞控\APP\app\build\intermediates\tmp\manifest\androidTest\debug\tempFile1ProcessTestManifest15559418757596918541.xml:14:22-52
+11-->E:\project\飞控\APP\app\build\intermediates\tmp\manifest\androidTest\debug\tempFile1ProcessTestManifest16612687265865647561.xml:14:22-52
 12        android:handleProfiling="false"
-12-->E:\project\飞控\APP\app\build\intermediates\tmp\manifest\androidTest\debug\tempFile1ProcessTestManifest15559418757596918541.xml:13:22-53
+12-->E:\project\飞控\APP\app\build\intermediates\tmp\manifest\androidTest\debug\tempFile1ProcessTestManifest16612687265865647561.xml:13:22-53
 13        android:label="Tests for com.example.dronetracker"
-13-->E:\project\飞控\APP\app\build\intermediates\tmp\manifest\androidTest\debug\tempFile1ProcessTestManifest15559418757596918541.xml:15:22-72
+13-->E:\project\飞控\APP\app\build\intermediates\tmp\manifest\androidTest\debug\tempFile1ProcessTestManifest16612687265865647561.xml:15:22-72
 14        android:targetPackage="com.example.dronetracker" />
-14-->E:\project\飞控\APP\app\build\intermediates\tmp\manifest\androidTest\debug\tempFile1ProcessTestManifest15559418757596918541.xml:12:22-70
+14-->E:\project\飞控\APP\app\build\intermediates\tmp\manifest\androidTest\debug\tempFile1ProcessTestManifest16612687265865647561.xml:12:22-70
 15
 16    <uses-permission android:name="android.permission.REORDER_TASKS" />
 16-->[androidx.test:core:1.5.0] C:\Users\xx.mu\.gradle\caches\transforms-3\c8607414e9ae04aaf80b1bde0a39360d\transformed\core-1.5.0\AndroidManifest.xml:24:5-72
@@ -40,12 +40,12 @@
 22    </queries>
 23
 24    <application
-24-->E:\project\飞控\APP\app\build\intermediates\tmp\manifest\androidTest\debug\tempFile1ProcessTestManifest15559418757596918541.xml:7:5-9:19
+24-->E:\project\飞控\APP\app\build\intermediates\tmp\manifest\androidTest\debug\tempFile1ProcessTestManifest16612687265865647561.xml:7:5-9:19
 25        android:debuggable="true"
 26        android:extractNativeLibs="true" >
 27        <uses-library android:name="android.test.runner" />
-27-->E:\project\飞控\APP\app\build\intermediates\tmp\manifest\androidTest\debug\tempFile1ProcessTestManifest15559418757596918541.xml:8:9-60
-27-->E:\project\飞控\APP\app\build\intermediates\tmp\manifest\androidTest\debug\tempFile1ProcessTestManifest15559418757596918541.xml:8:23-57
+27-->E:\project\飞控\APP\app\build\intermediates\tmp\manifest\androidTest\debug\tempFile1ProcessTestManifest16612687265865647561.xml:8:9-60
+27-->E:\project\飞控\APP\app\build\intermediates\tmp\manifest\androidTest\debug\tempFile1ProcessTestManifest16612687265865647561.xml:8:23-57
 28
 29        <activity
 29-->[androidx.test:core:1.5.0] C:\Users\xx.mu\.gradle\caches\transforms-3\c8607414e9ae04aaf80b1bde0a39360d\transformed\core-1.5.0\AndroidManifest.xml:27:9-34:20

@@ -5,6 +5,7 @@ public class DroneCommand {
     private float Posz;
     private float pitch;
     private float roll;
+    private float estimatedDistance;
 
     public static final byte[] TRACKING_STOP_COMMAND = {(byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF};
 
@@ -13,38 +14,40 @@ public class DroneCommand {
         this.Posz = 0;
         this.pitch = 0;
         this.roll = 0;
+        this.estimatedDistance = 0;
     }
 
-    public DroneCommand(float yaw, float Posz, float pitch, float roll) {
+    public DroneCommand(float yaw, float Posz, float pitch, float roll, float estimatedDistance) {
         // 1. 处理 yaw
-        float y = applyDeadzone(yaw, 6.0f);
+        float y = applyDeadzone(yaw, 8.0f);
         if (y != 0) {
-            y = y - Math.signum(y) * 6.0f;
+            y = y - Math.signum(y) * 8.0f;
         }
         float halfFov = TrackingController.FOV_HORIZONTAL / 2.0f;
         this.yaw = clamp(y, -halfFov, halfFov);
 
         // 2. 处理 Posz
-        float t = applyDeadzone(Posz, 1.2f);
+        float t = applyDeadzone(Posz, 2.0f);
         if (t != 0) {
-            t = t - Math.signum(t) * 1.2f;
+            t = (t - Math.signum(t) * 2.0f) * 5.0f / (5.0f-2.0f);
         }
         this.Posz = clamp(t, -3.0f, 5.0f);
 
         // 3. 只有当 yaw 和 Posz 都为 0 时，才更新 pitch
         if (this.yaw == 0 && this.Posz == 0) {
-            float p = applyDeadzone(pitch, 0.4f);
+            float p = applyDeadzone(pitch, 0.3f);
             if (p != 0) {
                 // 如果超过死区，减去偏移量实现平滑启动
-                p = p - Math.signum(p) * 0.4f;
+                p = p - Math.signum(p) * 0.3f;
             }
-            this.pitch = clamp(p, -0.4f, 0.4f);
+            this.pitch = clamp(p, -1.0f, 1.0f);
         } else {
             // 如果 yaw 或 Posz 不为 0，则强制 pitch 为 0
             this.pitch = 0;
         }
         
         this.roll = 0; // 暂不使用 roll
+        this.estimatedDistance = estimatedDistance;
     }
 
     private float applyDeadzone(float value, float deadzone) {
@@ -78,8 +81,8 @@ public class DroneCommand {
     public byte[] toBytes() {
         byte[] data = new byte[4];
         data[0] = (byte) 0xAA;
-        data[1] = (byte) (yaw );
-        data[2] = (byte) (Posz  * 10); // 映射 -5..5 到 -30..50，防止byte溢出
+        data[1] = (byte) (yaw * 1.5f);
+        data[2] = (byte) (Posz  * estimatedDistance); // 映射 -5..5 到 -30..50，防止byte溢出
         data[3] = (byte) (pitch * 50);
         //data[4] = (byte) (roll * 100);
         return data;

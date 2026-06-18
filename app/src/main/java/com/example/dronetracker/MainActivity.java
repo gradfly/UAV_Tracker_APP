@@ -55,6 +55,7 @@ public class MainActivity extends AppCompatActivity {
     private SeekBar distanceSlider;
     private TextView sliderValueTip;
     private Button bluetoothButton, trackingButton, switchCameraButton;
+    private Button btnTurnLeft, btnForward, btnTurnRight, btnLeft, btnTakeoff, btnRight, btnUp, btnBackward, btnDown;
 
     private ActivityResultLauncher<Intent> bluetoothEnableLauncher;
 
@@ -72,6 +73,8 @@ public class MainActivity extends AppCompatActivity {
     private boolean isTracking = false;
     private boolean isBluetoothConnected = false;
     private boolean isProcessingFrame = false;
+    private boolean isFlying = false;
+    private long lastFlightCommandTime = 0;
 
     // USB Camera members
     private UVCCameraManager mCameraHelper;
@@ -134,6 +137,47 @@ public class MainActivity extends AppCompatActivity {
         bluetoothButton.setOnClickListener(v -> toggleBluetooth());
         trackingButton.setOnClickListener(v -> toggleTracking());
         switchCameraButton.setOnClickListener(v -> showCameraSwitchDialog());
+
+        initFlightControls();
+    }
+
+    private void initFlightControls() {
+        btnTurnLeft.setOnClickListener(v -> sendFlightCommand(new byte[]{(byte) 0x80, (byte) 0x10}));
+        btnForward.setOnClickListener(v -> sendFlightCommand(new byte[]{(byte) 0x80, (byte) 0x03}));
+        btnTurnRight.setOnClickListener(v -> sendFlightCommand(new byte[]{(byte) 0x80, (byte) 0x11}));
+        btnLeft.setOnClickListener(v -> sendFlightCommand(new byte[]{(byte) 0x80, (byte) 0x05}));
+        btnTakeoff.setOnClickListener(v -> {
+            if (!isFlying) {
+                if (sendFlightCommand(new byte[]{(byte) 0x80, (byte) 0x02})) {
+                    btnTakeoff.setText("降落");
+                    isFlying = true;
+                }
+            } else {
+                if (sendFlightCommand(new byte[]{(byte) 0x80, (byte) 0x09})) {
+                    btnTakeoff.setText("起飞");
+                    isFlying = false;
+                }
+            }
+        });
+        btnRight.setOnClickListener(v -> sendFlightCommand(new byte[]{(byte) 0x80, (byte) 0x06}));
+        btnUp.setOnClickListener(v -> sendFlightCommand(new byte[]{(byte) 0x80, (byte) 0x12}));
+        btnBackward.setOnClickListener(v -> sendFlightCommand(new byte[]{(byte) 0x80, (byte) 0x04}));
+        btnDown.setOnClickListener(v -> sendFlightCommand(new byte[]{(byte) 0x80, (byte) 0x13}));
+    }
+
+    private boolean sendFlightCommand(byte[] data) {
+        if (isBluetoothConnected && bluetoothManager != null) {
+            long currentTime = System.currentTimeMillis();
+            if (currentTime - lastFlightCommandTime < 2000) {
+                return false;
+            }
+            bluetoothManager.sendRawData(data);
+            lastFlightCommandTime = currentTime;
+            return true;
+        } else {
+            Toast.makeText(this, "蓝牙未连接", Toast.LENGTH_SHORT).show();
+            return false;
+        }
     }
 
     private void initUsbCamera() {
@@ -502,6 +546,16 @@ public class MainActivity extends AppCompatActivity {
         trackingButton = findViewById(R.id.trackingButton);
         switchCameraButton = findViewById(R.id.switchCameraButton);
 
+        btnTurnLeft = findViewById(R.id.btnTurnLeft);
+        btnForward = findViewById(R.id.btnForward);
+        btnTurnRight = findViewById(R.id.btnTurnRight);
+        btnLeft = findViewById(R.id.btnLeft);
+        btnTakeoff = findViewById(R.id.btnTakeoff);
+        btnRight = findViewById(R.id.btnRight);
+        btnUp = findViewById(R.id.btnUp);
+        btnBackward = findViewById(R.id.btnBackward);
+        btnDown = findViewById(R.id.btnDown);
+
         // 设置距离滑块长度为屏幕高度的一半
         distanceSlider.post(() -> {
             int screenHeight = getResources().getDisplayMetrics().heightPixels;
@@ -641,29 +695,55 @@ public class MainActivity extends AppCompatActivity {
 
     @SuppressLint("MissingPermission")
     private void connectToDrone() {
-        BluetoothAdapter adapter = BluetoothAdapter.getDefaultAdapter();
-        Set<BluetoothDevice> pairedDevices = adapter.getBondedDevices();
+        List<BluetoothDevice> deviceList = new ArrayList<>();
+        BottomSheetDialog bottomSheetDialog = new BottomSheetDialog(this);
 
-        if (pairedDevices != null && !pairedDevices.isEmpty()) {
-            List<BluetoothDevice> deviceList = new ArrayList<>(pairedDevices);
-            
-            BottomSheetDialog bottomSheetDialog = new BottomSheetDialog(this);
-            View bottomSheetView = LayoutInflater.from(this).inflate(R.layout.layout_bluetooth_bottom_sheet, null);
-            bottomSheetDialog.setContentView(bottomSheetView);
+        BluetoothDeviceAdapter deviceAdapter = new BluetoothDeviceAdapter(deviceList, device -> {
+            bluetoothManager.stopScan();
+            bluetoothButton.setText(R.string.connecting);
+            bluetoothManager.connectToDevice(device);
+            bottomSheetDialog.dismiss();
+        });
 
-            RecyclerView recyclerView = bottomSheetView.findViewById(R.id.deviceRecyclerView);
-            recyclerView.setLayoutManager(new LinearLayoutManager(this));
-            
-            BluetoothDeviceAdapter deviceAdapter = new BluetoothDeviceAdapter(deviceList, device -> {
-                bluetoothButton.setText(R.string.connecting);
-                bluetoothManager.connectToDevice(device);
-                bottomSheetDialog.dismiss();
+        View bottomSheetView = LayoutInflater.from(this).inflate(R.layout.layout_bluetooth_bottom_sheet, null);
+        bottomSheetDialog.setContentView(bottomSheetView);
+
+        RecyclerView recyclerView = bottomSheetView.findViewById(R.id.deviceRecyclerView);
+        recyclerView.setLayoutManager(new LinearLayoutManager(this));
+        recyclerView.setAdapter(deviceAdapter);
+
+        bottomSheetDialog.setOnDismissListener(dialog -> bluetoothManager.stopScan());
+        bottomSheetDialog.show();
+
+        // 开始扫描 BLE 设备
+        bluetoothManager.startScan(device -> {
+            runOnUiThread(() -> {
+                boolean exists = false;
+                for (BluetoothDevice d : deviceList) {
+                    if (d.getAddress().equals(device.getAddress())) {
+                        exists = true;
+                        break;
+                    }
+                }
+                if (!exists) {
+                    deviceList.add(device);
+                    deviceAdapter.notifyItemInserted(deviceList.size() - 1);
+                }
             });
-            recyclerView.setAdapter(deviceAdapter);
+        });
 
-            bottomSheetDialog.show();
-        } else {
-            Toast.makeText(this, R.string.no_paired_devices, Toast.LENGTH_LONG).show();
+        // 也可以先把已配对的设备加进去
+        BluetoothAdapter adapter = BluetoothAdapter.getDefaultAdapter();
+        if (adapter != null) {
+            Set<BluetoothDevice> pairedDevices = adapter.getBondedDevices();
+            if (pairedDevices != null) {
+                for (BluetoothDevice device : pairedDevices) {
+                    if (!deviceList.contains(device)) {
+                        deviceList.add(device);
+                    }
+                }
+                deviceAdapter.notifyDataSetChanged();
+            }
         }
     }
 
@@ -729,6 +809,9 @@ public class MainActivity extends AppCompatActivity {
             startTrackingLoop();
         } else {
             // 如果当前正在跟踪，点击按钮则停止跟踪并清除目标
+            if (isBluetoothConnected && bluetoothManager != null) {
+                bluetoothManager.sendRawData(DroneCommand.TRACKING_STOP_COMMAND);
+            }
             stopTrackingAndClearUI();
         }
     }
@@ -888,13 +971,13 @@ public class MainActivity extends AppCompatActivity {
         runOnUiThread(() -> {
             if (result != null) {
                 DroneCommand cmd = result.command;
-                horizontalAngle.setText(String.format(java.util.Locale.CHINA, "水平距离: %d px, %d", pixelDX, (int)(cmd.getYaw()*80)));
-                verticalAngle.setText(String.format(java.util.Locale.CHINA, "竖直距离: %d px, %d", pixelDY, (int)(cmd.getPosz()*100)));
-                distanceValue.setText(String.format(java.util.Locale.CHINA, "远近距离: %.1f, %d", estimatedDistance, (int)(cmd.getPitch()*50)));
+                horizontalAngle.setText(String.format(java.util.Locale.CHINA, "水平距离: %d px, yaw：%d", pixelDX, (int)(cmd.getYaw()*1.5f)));
+                verticalAngle.setText(String.format(java.util.Locale.CHINA, "竖直距离: %d px, Posz：%d", pixelDY, (int)(cmd.getPosz()*estimatedDistance)));
+                distanceValue.setText(String.format(java.util.Locale.CHINA, "远近距离: %.1f, Pitch：%d", estimatedDistance, (int)(cmd.getPitch()*50)));
             } else {
-                horizontalAngle.setText(String.format(java.util.Locale.CHINA, "水平距离: %d px", pixelDX));
-                verticalAngle.setText(String.format(java.util.Locale.CHINA, "竖直距离: %d px", pixelDY));
-                distanceValue.setText(String.format(java.util.Locale.CHINA, "远近距离: %.1f", estimatedDistance));
+                horizontalAngle.setText(String.format(java.util.Locale.CHINA, "水平距离: yaw：%d px", pixelDX));
+                verticalAngle.setText(String.format(java.util.Locale.CHINA, "竖直距离: Posz：%d px", pixelDY));
+                distanceValue.setText(String.format(java.util.Locale.CHINA, "远近距离: Pitch：%.1f", estimatedDistance));
             }
             overlayView.setAngles(pixelDX, pixelDY);
         });

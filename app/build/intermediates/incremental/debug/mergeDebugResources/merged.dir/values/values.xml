@@ -2127,7 +2127,7 @@
     <string description="Title of the side sheet&apos;s accessibility pane that is spoken by TalkBack when the side sheet appears on screen. [CHAR_LIMIT=NONE]" name="side_sheet_accessibility_pane_title">Side Sheet</string>
     <string name="side_sheet_behavior" translatable="false">com.google.android.material.sidesheet.SideSheetBehavior</string>
     <string name="status_bar_notification_info_overflow">999+</string>
-    <string name="switch_camera">切换摄像头</string>
+    <string name="switch_camera">切换镜头</string>
     <string name="tracking_disabled">未跟踪</string>
     <string name="tracking_enabled">跟踪中</string>
     <string name="usb_camera">USB摄像头</string>

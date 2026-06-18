@@ -105,7 +105,7 @@ public class TrackingController {
         lastPosz = lastPosz + clamp(ALPHA * (PoszOutput - lastPosz), -5f, 5f);
         lastPitch = lastPitch + clamp(ALPHA * (pitchOutput - lastPitch), -2f, 2f);
 
-        DroneCommand command = new DroneCommand(lastYaw, lastPosz, lastPitch, 0);
+        DroneCommand command = new DroneCommand(lastYaw, lastPosz, lastPitch, 0, estimatedDistance);
 
         return new TrackingResult(horizontalAngle, verticalAngle, command);
     }
