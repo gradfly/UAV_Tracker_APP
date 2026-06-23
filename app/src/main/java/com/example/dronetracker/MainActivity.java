@@ -4,6 +4,7 @@ import android.Manifest;
 import android.annotation.SuppressLint;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.content.res.ColorStateList;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Rect;
@@ -22,6 +23,7 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.RelativeLayout;
 import android.widget.SeekBar;
+import androidx.appcompat.widget.SwitchCompat;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -54,6 +56,7 @@ public class MainActivity extends AppCompatActivity {
     private TextView trackingStatus, horizontalAngle, verticalAngle, distanceValue;
     private SeekBar distanceSlider;
     private TextView sliderValueTip;
+    private SwitchCompat switchUnlock;
     private Button bluetoothButton, trackingButton, switchCameraButton;
     private Button btnTurnLeft, btnForward, btnTurnRight, btnLeft, btnTakeoff, btnRight, btnUp, btnBackward, btnDown;
 
@@ -103,6 +106,9 @@ public class MainActivity extends AppCompatActivity {
         checkPermissions();
 
         overlayView.setOnTouchListener((v, event) -> {
+            if (event.getAction() == MotionEvent.ACTION_DOWN) {
+                v.performClick();
+            }
             handleTouchEvent(event);
             return true;
         });
@@ -142,6 +148,25 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void initFlightControls() {
+        switchUnlock.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if (isChecked) {
+                // 解锁命令
+                sendFlightCommand(new byte[]{(byte) 0x80, (byte) 0x07});
+                switchUnlock.setText("已解锁");
+                int greenColor = ContextCompat.getColor(this, R.color.green);
+                switchUnlock.setTextColor(greenColor);
+                switchUnlock.setThumbTintList(ColorStateList.valueOf(greenColor));
+                switchUnlock.setTrackTintList(ColorStateList.valueOf(greenColor));
+            } else {
+                // 上锁命令
+                sendFlightCommand(new byte[]{(byte) 0x80, (byte) 0x08});
+                switchUnlock.setText("已上锁");
+                int whiteColor = ContextCompat.getColor(this, R.color.white);
+                switchUnlock.setTextColor(whiteColor);
+                switchUnlock.setThumbTintList(null); // 恢复默认
+                switchUnlock.setTrackTintList(null); // 恢复默认
+            }
+        });
         btnTurnLeft.setOnClickListener(v -> sendFlightCommand(new byte[]{(byte) 0x80, (byte) 0x10}));
         btnForward.setOnClickListener(v -> sendFlightCommand(new byte[]{(byte) 0x80, (byte) 0x03}));
         btnTurnRight.setOnClickListener(v -> sendFlightCommand(new byte[]{(byte) 0x80, (byte) 0x11}));
@@ -546,6 +571,8 @@ public class MainActivity extends AppCompatActivity {
         trackingButton = findViewById(R.id.trackingButton);
         switchCameraButton = findViewById(R.id.switchCameraButton);
 
+        switchUnlock = findViewById(R.id.switch1);
+
         btnTurnLeft = findViewById(R.id.btnTurnLeft);
         btnForward = findViewById(R.id.btnForward);
         btnTurnRight = findViewById(R.id.btnTurnRight);
@@ -854,7 +881,7 @@ public class MainActivity extends AppCompatActivity {
 
             if (useUsbCamera) {
                 // USB 摄像头截图处理
-                if (mCameraHelper != null) {
+                if (mCameraHelper != null && getExternalCacheDir() != null) {
                     mCameraHelper.capturePicture(getExternalCacheDir().getAbsolutePath() + "/temp.jpg", new UVCCameraManager.CaptureCallback() {
                         @Override
                         public void onCaptureSuccess(String path) {
