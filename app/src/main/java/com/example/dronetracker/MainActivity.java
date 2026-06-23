@@ -126,12 +126,10 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onStartTrackingTouch(SeekBar seekBar) {
-                sliderValueTip.setVisibility(View.VISIBLE);
             }
 
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {
-                sliderValueTip.setVisibility(View.INVISIBLE);
             }
         });
 
@@ -596,6 +594,12 @@ public class MainActivity extends AppCompatActivity {
             int sidebarWidth = (int) (60 * getResources().getDisplayMetrics().density);
             lp.rightMargin = -(sliderWidth / 2 - sidebarWidth / 2);
             distanceSlider.setLayoutParams(lp);
+
+            // 确保在布局完成后更新一次位置
+            sliderValueTip.post(() -> {
+                int initialProgress = distanceSlider.getProgress();
+                updateSliderTip(initialProgress, 10.0f - (initialProgress / 100.0f * 9.0f));
+            });
         });
     }
 

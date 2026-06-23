@@ -3530,6 +3530,7 @@ id submenuarrow
 id submit_area
 id supportScrollUp
 id surfaceView
+id switch1
 id switchCameraButton
 id tabMode
 id tag_accessibility_actions

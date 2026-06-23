@@ -3,17 +3,20 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/black">
+    android:background="@color/black"
+    android:keepScreenOn="true">
 
     <com.example.dronetracker.SimpleUVCCameraTextureView
         android:id="@+id/surfaceView"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="match_parent"
+        android:layout_toLeftOf="@id/rightControlArea" />
 
     <com.example.dronetracker.VideoOverlayView
         android:id="@+id/overlayView"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="match_parent"
+        android:layout_toLeftOf="@id/rightControlArea" />
 
     <LinearLayout
         android:id="@+id/infoPanel"
@@ -105,22 +108,6 @@
         android:rotation="270"
         android:thumb="@drawable/ic_thumb"
         android:progressDrawable="@drawable/seekbar_style"/>
-
-    <TextView
-        android:id="@+id/sliderValueTip"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:background="@drawable/bg_tooltip"
-        android:paddingLeft="8dp"
-        android:paddingRight="8dp"
-        android:paddingTop="4dp"
-        android:paddingBottom="4dp"
-        android:text="5.0"
-        android:textColor="@color/white"
-        android:textSize="14sp"
-        android:visibility="invisible"
-        android:layout_alignParentRight="true"
-        android:layout_marginRight="65dp"/>
 
     <LinearLayout
         android:id="@+id/flightControlPanel"
@@ -319,5 +306,21 @@
             android:paddingBottom="12dp"/>
 
     </LinearLayout>
+
+    <TextView
+        android:id="@+id/sliderValueTip"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="@drawable/bg_tooltip"
+        android:paddingLeft="8dp"
+        android:paddingRight="8dp"
+        android:paddingTop="4dp"
+        android:paddingBottom="4dp"
+        android:text="5.0"
+        android:textColor="@color/white"
+        android:textSize="14sp"
+        android:visibility="visible"
+        android:layout_toLeftOf="@id/rightControlArea"
+        android:layout_marginRight="10dp"/>
 
 </RelativeLayout>
