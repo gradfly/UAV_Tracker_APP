@@ -3,7 +3,7 @@ package com.example.dronetracker;
 public class DroneCommand {
     private float yaw;
     private float Posz;
-    private float pitch;
+    private float Posx;
     private float roll;
     private float estimatedDistance;
 
@@ -12,12 +12,12 @@ public class DroneCommand {
     public DroneCommand() {
         this.yaw = 0;
         this.Posz = 0;
-        this.pitch = 0;
+        this.Posx = 0;
         this.roll = 0;
         this.estimatedDistance = 0;
     }
 
-    public DroneCommand(float yaw, float Posz, float pitch, float roll, float estimatedDistance) {
+    public DroneCommand(float yaw, float Posz, float Posx, float roll, float estimatedDistance) {
         // 1. 处理 yaw
         float y = applyDeadzone(yaw, 8.0f);
         if (y != 0) {
@@ -33,17 +33,17 @@ public class DroneCommand {
         }
         this.Posz = clamp(t, -3.0f, 5.0f);
 
-        // 3. 只有当 yaw 和 Posz 都为 0 时，才更新 pitch
+        // 3. 只有当 yaw 和 Posz 都为 0 时，才更新 Posx
         if (this.yaw == 0 && this.Posz == 0) {
-            float p = applyDeadzone(pitch, 0.3f);
+            float p = applyDeadzone(Posx, 0.2f);
             if (p != 0) {
                 // 如果超过死区，减去偏移量实现平滑启动
-                p = p - Math.signum(p) * 0.3f;
+                p = p - Math.signum(p) * 0.2f;
             }
-            this.pitch = clamp(p, -1.0f, 1.0f);
+            this.Posx = clamp(p, -1.0f, 1.0f);
         } else {
-            // 如果 yaw 或 Posz 不为 0，则强制 pitch 为 0
-            this.pitch = 0;
+            // 如果 yaw 或 Posz 不为 0，则强制 Posx 为 0
+            this.Posx = 0;
         }
         
         this.roll = 0; // 暂不使用 roll
@@ -65,8 +65,8 @@ public class DroneCommand {
     public float getPosz() {
         return Posz;
     }
-    public float getPitch() {
-        return pitch;
+    public float getPosx() {
+        return Posx;
     }
 
 //    public byte[] toBytes() {
@@ -74,7 +74,7 @@ public class DroneCommand {
 //        data[0] = (byte) 0xAA;
 //        data[1] = (byte) ((yaw + 1) * 127);
 //        data[2] = (byte) ((Posz + 1) * 127);
-//        data[3] = (byte) ((pitch + 1) * 127);
+//        data[3] = (byte) ((Posx + 1) * 127);
 //        data[4] = (byte) ((roll + 1) * 127);
 //        return data;
 //    }
@@ -83,14 +83,14 @@ public class DroneCommand {
         data[0] = (byte) 0xAA;
         data[1] = (byte) (yaw * 1.5f);
         data[2] = (byte) (Posz  * estimatedDistance); // 映射 -5..5 到 -30..50，防止byte溢出
-        data[3] = (byte) (pitch * 50);
+        data[3] = (byte) (Posx * 100);
         //data[4] = (byte) (roll * 100);
         return data;
     }
 
     @Override
     public String toString() {
-        return String.format("Yaw: %.2f, Posz: %.2f, Pitch: %.2f, Roll: %.2f",
-                yaw, Posz, pitch, roll);
+        return String.format("Yaw: %.2f, Posz: %.2f, Posx: %.2f, Roll: %.2f",
+                yaw, Posz, Posx, roll);
     }
 }

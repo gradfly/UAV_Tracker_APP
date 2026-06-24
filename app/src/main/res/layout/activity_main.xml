@@ -142,132 +142,164 @@
                 android:textColor="@color/white" />
         </LinearLayout>
 
-        <LinearLayout
+        <FrameLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal">
+            android:layout_height="wrap_content">
 
-            <Button
-                android:id="@+id/btnTurnLeft"
-                android:layout_width="0dp"
+            <LinearLayout
+                android:id="@+id/manualControlLayout"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_margin="4dp"
-                android:layout_weight="1"
-                android:background="@color/primary_color"
-                android:paddingTop="12dp"
-                android:paddingBottom="12dp"
-                android:text="左转"
-                android:textColor="@color/white" />
+                android:orientation="vertical">
 
-            <Button
-                android:id="@+id/btnForward"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_margin="4dp"
-                android:layout_weight="1"
-                android:background="@color/primary_color"
-                android:paddingTop="12dp"
-                android:paddingBottom="12dp"
-                android:text="前进"
-                android:textColor="@color/white" />
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
 
-            <Button
-                android:id="@+id/btnTurnRight"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_margin="4dp"
-                android:layout_weight="1"
-                android:background="@color/primary_color"
-                android:paddingTop="12dp"
-                android:paddingBottom="12dp"
-                android:text="右转"
-                android:textColor="@color/white" />
-        </LinearLayout>
+                    <Button
+                        android:id="@+id/btnTurnLeft"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_margin="4dp"
+                        android:layout_weight="1"
+                        android:background="@color/primary_color"
+                        android:paddingTop="12dp"
+                        android:paddingBottom="12dp"
+                        android:text="左转"
+                        android:textColor="@color/white" />
 
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal">
+                    <Button
+                        android:id="@+id/btnForward"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_margin="4dp"
+                        android:layout_weight="1"
+                        android:background="@color/primary_color"
+                        android:paddingTop="12dp"
+                        android:paddingBottom="12dp"
+                        android:text="前进"
+                        android:textColor="@color/white" />
 
-            <Button
-                android:id="@+id/btnLeft"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_margin="4dp"
-                android:layout_weight="1"
-                android:background="@color/primary_color"
-                android:paddingTop="12dp"
-                android:paddingBottom="12dp"
-                android:text="向左"
-                android:textColor="@color/white" />
+                    <Button
+                        android:id="@+id/btnTurnRight"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_margin="4dp"
+                        android:layout_weight="1"
+                        android:background="@color/primary_color"
+                        android:paddingTop="12dp"
+                        android:paddingBottom="12dp"
+                        android:text="右转"
+                        android:textColor="@color/white" />
+                </LinearLayout>
 
-            <Button
-                android:id="@+id/btnTakeoff"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_margin="4dp"
-                android:layout_weight="1"
-                android:background="@color/accent_color"
-                android:paddingTop="12dp"
-                android:paddingBottom="12dp"
-                android:text="起飞"
-                android:textColor="@color/white" />
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
 
-            <Button
-                android:id="@+id/btnRight"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_margin="4dp"
-                android:layout_weight="1"
-                android:background="@color/primary_color"
-                android:paddingTop="12dp"
-                android:paddingBottom="12dp"
-                android:text="向右"
-                android:textColor="@color/white" />
-        </LinearLayout>
+                    <Button
+                        android:id="@+id/btnLeft"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_margin="4dp"
+                        android:layout_weight="1"
+                        android:background="@color/primary_color"
+                        android:paddingTop="12dp"
+                        android:paddingBottom="12dp"
+                        android:text="向左"
+                        android:textColor="@color/white" />
 
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal">
+                    <Button
+                        android:id="@+id/btnTakeoff"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_margin="4dp"
+                        android:layout_weight="1"
+                        android:background="@color/accent_color"
+                        android:paddingTop="12dp"
+                        android:paddingBottom="12dp"
+                        android:text="起飞"
+                        android:textColor="@color/white" />
 
-            <Button
-                android:id="@+id/btnUp"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_margin="4dp"
-                android:layout_weight="1"
-                android:background="@color/primary_color"
-                android:paddingTop="12dp"
-                android:paddingBottom="12dp"
-                android:text="上升"
-                android:textColor="@color/white" />
+                    <Button
+                        android:id="@+id/btnRight"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_margin="4dp"
+                        android:layout_weight="1"
+                        android:background="@color/primary_color"
+                        android:paddingTop="12dp"
+                        android:paddingBottom="12dp"
+                        android:text="向右"
+                        android:textColor="@color/white" />
+                </LinearLayout>
 
-            <Button
-                android:id="@+id/btnBackward"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_margin="4dp"
-                android:layout_weight="1"
-                android:background="@color/primary_color"
-                android:paddingTop="12dp"
-                android:paddingBottom="12dp"
-                android:text="后退"
-                android:textColor="@color/white"
-                tools:ignore="TextContrastCheck" />
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
 
-            <Button
-                android:id="@+id/btnDown"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_margin="4dp"
-                android:layout_weight="1"
-                android:background="@color/primary_color"
-                android:paddingTop="12dp"
-                android:paddingBottom="12dp"
-                android:text="下降"
-                android:textColor="@color/white" />
-        </LinearLayout>
+                    <Button
+                        android:id="@+id/btnUp"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_margin="4dp"
+                        android:layout_weight="1"
+                        android:background="@color/primary_color"
+                        android:paddingTop="12dp"
+                        android:paddingBottom="12dp"
+                        android:text="上升"
+                        android:textColor="@color/white" />
+
+                    <Button
+                        android:id="@+id/btnBackward"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_margin="4dp"
+                        android:layout_weight="1"
+                        android:background="@color/primary_color"
+                        android:paddingTop="12dp"
+                        android:paddingBottom="12dp"
+                        android:text="后退"
+                        android:textColor="@color/white"
+                        tools:ignore="TextContrastCheck" />
+
+                    <Button
+                        android:id="@+id/btnDown"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_margin="4dp"
+                        android:layout_weight="1"
+                        android:background="@color/primary_color"
+                        android:paddingTop="12dp"
+                        android:paddingBottom="12dp"
+                        android:text="下降"
+                        android:textColor="@color/white" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/joystickLayout"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="horizontal"
+                android:visibility="gone">
+
+                <com.example.dronetracker.JoystickView
+                    android:id="@+id/joystickLeft"
+                    android:layout_width="0dp"
+                    android:layout_height="180dp"
+                    android:layout_weight="1" />
+
+                <com.example.dronetracker.JoystickView
+                    android:id="@+id/joystickRight"
+                    android:layout_width="0dp"
+                    android:layout_height="180dp"
+                    android:layout_weight="1" />
+            </LinearLayout>
+        </FrameLayout>
 
     </LinearLayout>
 

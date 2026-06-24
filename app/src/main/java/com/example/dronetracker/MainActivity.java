@@ -57,6 +57,8 @@ public class MainActivity extends AppCompatActivity {
     private SeekBar distanceSlider;
     private TextView sliderValueTip;
     private SwitchCompat switchUnlock, switchAutoMode;
+    private View manualControlLayout, joystickLayout;
+    private JoystickView joystickLeft, joystickRight;
     private Button bluetoothButton, trackingButton, switchCameraButton;
     private Button btnTurnLeft, btnForward, btnTurnRight, btnLeft, btnTakeoff, btnRight, btnUp, btnBackward, btnDown;
 
@@ -84,6 +86,8 @@ public class MainActivity extends AppCompatActivity {
     private boolean isCameraRequest = false;
     private boolean isCameraConnected = false;
     private boolean useUsbCamera = false;
+
+    private long targetSessionId = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -167,29 +171,24 @@ public class MainActivity extends AppCompatActivity {
         });
 
         switchAutoMode.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            int visibility = isChecked ? View.INVISIBLE : View.VISIBLE;
-            btnTurnLeft.setVisibility(visibility);
-            btnForward.setVisibility(visibility);
-            btnTurnRight.setVisibility(visibility);
-            btnLeft.setVisibility(visibility);
-            btnTakeoff.setVisibility(visibility);
-            btnRight.setVisibility(visibility);
-            btnUp.setVisibility(visibility);
-            btnBackward.setVisibility(visibility);
-            btnDown.setVisibility(visibility);
-
             if (isChecked) {
-                switchAutoMode.setText("自动");
+                switchAutoMode.setText("手动");
                 int greenColor = ContextCompat.getColor(this, R.color.green);
                 switchAutoMode.setTextColor(greenColor);
                 switchAutoMode.setThumbTintList(ColorStateList.valueOf(greenColor));
                 switchAutoMode.setTrackTintList(ColorStateList.valueOf(greenColor));
+                
+                manualControlLayout.setVisibility(View.INVISIBLE);
+                joystickLayout.setVisibility(View.VISIBLE);
             } else {
-                switchAutoMode.setText("手动");
+                switchAutoMode.setText("自动");
                 int whiteColor = ContextCompat.getColor(this, R.color.white);
                 switchAutoMode.setTextColor(whiteColor);
                 switchAutoMode.setThumbTintList(null);
                 switchAutoMode.setTrackTintList(null);
+                
+                manualControlLayout.setVisibility(View.VISIBLE);
+                joystickLayout.setVisibility(View.GONE);
             }
         });
 
@@ -376,12 +375,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void processFrameWithBitmap(android.graphics.Bitmap bitmap) {
-        if (targetRect == null) {
-            bitmap.recycle();
-            isProcessingFrame = false;
-            return;
-        }
-
+        long currentSession;
         float scaleX = (float) bitmap.getWidth() / overlayView.getWidth();
         float scaleY = (float) bitmap.getHeight() / overlayView.getHeight();
         
@@ -396,12 +390,13 @@ public class MainActivity extends AppCompatActivity {
             searchX = targetRect.centerX() * scaleX;
             searchY = targetRect.centerY() * scaleY;
             currentLabel = targetLabel;
+            currentSession = targetSessionId;
         }
 
         Detection detection = yoloDetector.detect(bitmap, searchX, searchY, currentLabel);
         bitmap.recycle();
 
-        if (detection != null && isTracking) {
+        if (detection != null) {
             android.graphics.RectF boxF = detection.boundingBox();
             Rect newRect = new Rect(
                     (int) (boxF.left / scaleX),
@@ -411,8 +406,13 @@ public class MainActivity extends AppCompatActivity {
             );
 
             synchronized (this) {
-                if (!isTracking) return;
-                targetRect = newRect;
+                // 只有在 Session ID 匹配时才更新，防止覆盖用户手动选择的新目标
+                if (isTracking && targetSessionId == currentSession) {
+                    targetRect = newRect;
+                } else {
+                    isProcessingFrame = false;
+                    return;
+                }
             }
 
             runOnUiThread(() -> {
@@ -609,6 +609,27 @@ public class MainActivity extends AppCompatActivity {
         btnUp = findViewById(R.id.btnUp);
         btnBackward = findViewById(R.id.btnBackward);
         btnDown = findViewById(R.id.btnDown);
+
+        manualControlLayout = findViewById(R.id.manualControlLayout);
+        joystickLayout = findViewById(R.id.joystickLayout);
+        joystickLeft = findViewById(R.id.joystickLeft);
+        joystickRight = findViewById(R.id.joystickRight);
+
+        // 左侧摇杆：垂直方向不自动回中（控制油门/升降），默认在最下方
+        joystickLeft.setInitialPosition(0, -1);
+        joystickLeft.setAutoCenter(true, false);
+
+        // 美国手 Mode 2: 左手控制升降(Y)和旋转(X)
+        joystickLeft.setOnJoystickChangeListener((xPercent, yPercent) -> {
+            // TODO: 处理左摇杆逻辑 (x: 旋转, y: 升降)
+            Log.d("Joystick", "Left Stick - Yaw: " + xPercent + ", Throttle: " + yPercent);
+        });
+
+        // 美国手 Mode 2: 右手控制前后(Y)和左右平移(X)
+        joystickRight.setOnJoystickChangeListener((xPercent, yPercent) -> {
+            // TODO: 处理右摇杆逻辑 (x: 平移, y: 前后)
+            Log.d("Joystick", "Right Stick - Roll: " + xPercent + ", Posx: " + yPercent);
+        });
 
         // 设置距离滑块长度为屏幕高度的一半
         distanceSlider.post(() -> {
@@ -855,24 +876,27 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void toggleTracking() {
-        if (!isTracking) {
-            if (targetRect == null) {
-                Toast.makeText(this, "请先点击视频选择跟踪目标", Toast.LENGTH_SHORT).show();
-                return;
-            }
+        if (targetRect == null) {
+            Toast.makeText(this, "请先点击视频选择跟踪目标", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        String trackingText = getString(R.string.tracking_enabled);
+        if (trackingButton.getText().toString().equals(trackingText)) {
+            // 当前正在跟踪 -> 切换为“暂停跟踪”
+            trackingButton.setText("暂停跟踪");
+            trackingStatus.setText("暂停跟踪");
+            // 立即发送一次停止指令给无人机
+            sendStopCommand();
+        } else {
+            // 当前是“未跟踪”或“暂停跟踪” -> 开启/恢复跟踪
             isTracking = true;
             trackingController.setTrackingEnabled(true);
             overlayView.setTrackingEnabled(true);
-            trackingButton.setText(R.string.tracking_enabled);
+            trackingButton.setText(trackingText);
             trackingButton.setBackgroundColor(ContextCompat.getColor(this, R.color.green));
-            trackingStatus.setText(R.string.tracking_enabled);
+            trackingStatus.setText(trackingText);
             startTrackingLoop();
-        } else {
-            // 如果当前正在跟踪，点击按钮则停止跟踪并清除目标
-            if (isBluetoothConnected && bluetoothManager != null) {
-                bluetoothManager.sendRawData(DroneCommand.TRACKING_STOP_COMMAND);
-            }
-            stopTrackingAndClearUI();
         }
     }
 
@@ -891,15 +915,13 @@ public class MainActivity extends AppCompatActivity {
             trackingButton.setBackgroundColor(ContextCompat.getColor(this, R.color.accent_color));
             trackingStatus.setText(R.string.tracking_disabled);
             
-            overlayView.setTargetRect(null);
-            overlayView.setTargetName("");
-            horizontalAngle.setText(R.string.horizontal_angle);
-            verticalAngle.setText(R.string.vertical_angle);
-            distanceValue.setText(R.string.distance);
+            // overlayView.setTargetRect(null);
+            // overlayView.setTargetName("");
+            //updateTargetMetrics(null);
         });
 
         sendStopCommand();
-        stopTrackingLoop();
+        // stopTrackingLoop();
     }
 
     private void handleTouchEvent(MotionEvent event) {
@@ -975,6 +997,8 @@ public class MainActivity extends AppCompatActivity {
             android.graphics.RectF boxF = detection.boundingBox();
             
             synchronized (MainActivity.this) {
+                // 增加 Session ID，使正在运行的后台识别失效
+                targetSessionId++;
                 // 将检测到的框从 Bitmap 坐标映射回 View 坐标
                 targetRect = new Rect(
                         (int) (boxF.left / scaleX),
@@ -1033,11 +1057,11 @@ public class MainActivity extends AppCompatActivity {
                 DroneCommand cmd = result.command;
                 horizontalAngle.setText(String.format(java.util.Locale.CHINA, "水平距离: %d px, yaw：%d", pixelDX, (int)(cmd.getYaw()*1.5f)));
                 verticalAngle.setText(String.format(java.util.Locale.CHINA, "竖直距离: %d px, Posz：%d", pixelDY, (int)(cmd.getPosz()*estimatedDistance)));
-                distanceValue.setText(String.format(java.util.Locale.CHINA, "远近距离: %.1f, Pitch：%d", estimatedDistance, (int)(cmd.getPitch()*50)));
+                distanceValue.setText(String.format(java.util.Locale.CHINA, "远近距离: %.1f, Posx：%d", estimatedDistance, (int)(cmd.getPosx()*100)));
             } else {
                 horizontalAngle.setText(String.format(java.util.Locale.CHINA, "水平距离: yaw：%d px", pixelDX));
                 verticalAngle.setText(String.format(java.util.Locale.CHINA, "竖直距离: Posz：%d px", pixelDY));
-                distanceValue.setText(String.format(java.util.Locale.CHINA, "远近距离: Pitch：%.1f", estimatedDistance));
+                distanceValue.setText(String.format(java.util.Locale.CHINA, "远近距离: Posx：%.1f", estimatedDistance));
             }
             overlayView.setAngles(pixelDX, pixelDY);
         });
@@ -1084,12 +1108,16 @@ public class MainActivity extends AppCompatActivity {
                     // 即使未开启无人机控制，也计算控制量以获取水平/垂直角度
                     TrackingController.TrackingResult result = trackingController.processTarget(currentRect, deltaTime);
 
-                    // 实时更新UI数值和覆盖层角度
-                    updateTargetMetrics(result);
-
-                    // 只有在开启跟踪且蓝牙连接时才发送实际指令
-                    if (isTracking && isBluetoothConnected) {
-                        bluetoothManager.sendCommand(result.command);
+                    // 根据按钮文字决定显示控制指令还是像素距离
+                    String btnText = trackingButton.getText().toString();
+                    if (btnText.equals(getString(R.string.tracking_enabled))) {
+                        updateTargetMetrics(result);
+                        // 只有在“跟踪中”且蓝牙连接时才发送实际指令
+                        if (isBluetoothConnected) {
+                            bluetoothManager.sendCommand(result.command);
+                        }
+                    } else if (btnText.equals("暂停跟踪")) {
+                        updateTargetMetrics(null);
                     }
                 }
 
@@ -1100,9 +1128,13 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void processFrameForTracking(byte[] data, Camera camera) {
-        if (targetRect == null) {
-            isProcessingFrame = false;
-            return;
+        long currentSession;
+        synchronized (this) {
+            if (targetRect == null) {
+                isProcessingFrame = false;
+                return;
+            }
+            currentSession = targetSessionId;
         }
 
         try {
@@ -1111,32 +1143,28 @@ public class MainActivity extends AppCompatActivity {
             int height = parameters.getPreviewSize().height;
 
             // 1. 将 NV21 数据转换为 Bitmap
-            // 优化：降低 JPEG 质量到 60 (YOLO 对此不敏感但压缩速度更快)
             android.graphics.YuvImage yuvImage = new android.graphics.YuvImage(data, android.graphics.ImageFormat.NV21, width, height, null);
             java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
             yuvImage.compressToJpeg(new Rect(0, 0, width, height), 60, out);
             byte[] imageBytes = out.toByteArray();
             android.graphics.Bitmap bitmap = android.graphics.BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.length);
 
-            // 2. 旋转并缩放
-            // 优化：在旋转的同时进行缩放可以减少内存拷贝
+            // 2. 旋转
             android.graphics.Matrix matrix = new android.graphics.Matrix();
             matrix.postRotate(90);
-            // 这里我们保持原样，因为 YoloDetector 内部还会进行一次缩放
             android.graphics.Bitmap rotatedBitmap = android.graphics.Bitmap.createBitmap(bitmap, 0, 0, width, height, matrix, true);
-            
-            // 释放中间过程的 bitmap
             if (bitmap != rotatedBitmap) bitmap.recycle();
 
-            // 3. 使用 YOLO 检测当前画面中靠近上一次位置且类别相同的物体
+            // 3. 使用 YOLO 检测
             float scaleX = (float) rotatedBitmap.getWidth() / overlayView.getWidth();
             float scaleY = (float) rotatedBitmap.getHeight() / overlayView.getHeight();
             
             float searchX, searchY;
             String currentLabel;
             synchronized (this) {
-                if (targetRect == null) {
+                if (targetRect == null || targetSessionId != currentSession) {
                     rotatedBitmap.recycle();
+                    isProcessingFrame = false;
                     return;
                 }
                 searchX = targetRect.centerX() * scaleX;
@@ -1147,7 +1175,7 @@ public class MainActivity extends AppCompatActivity {
             Detection detection = yoloDetector.detect(rotatedBitmap, searchX, searchY, currentLabel);
             rotatedBitmap.recycle();
 
-            if (detection != null && isTracking) {
+            if (detection != null) {
                 android.graphics.RectF boxF = detection.boundingBox();
                 Rect newRect = new Rect(
                         (int) (boxF.left / scaleX),
@@ -1157,8 +1185,13 @@ public class MainActivity extends AppCompatActivity {
                 );
 
                 synchronized (this) {
-                    if (!isTracking) return;
-                    targetRect = newRect;
+                    // 再次检查 Session ID
+                    if (isTracking && targetSessionId == currentSession) {
+                        targetRect = newRect;
+                    } else {
+                        isProcessingFrame = false;
+                        return;
+                    }
                 }
 
                 runOnUiThread(() -> {

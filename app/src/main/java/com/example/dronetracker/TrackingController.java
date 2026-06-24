@@ -10,7 +10,7 @@ public class TrackingController {
 
     private PIDController yawController;
     private PIDController PoszController;
-    private PIDController pitchController;
+    private PIDController PosxController;
     private float targetDistanceRatio;
     private boolean trackingEnabled;
     private int frameWidth;
@@ -18,15 +18,15 @@ public class TrackingController {
 
     private float lastYaw = 0;
     private float lastPosz = 0;
-    private float lastPitch = 0;
+    private float lastPosx = 0;
     private static final float ALPHA = 0.4f; // 滤波系数，0.1-1.0，越小越平滑
 
     public TrackingController() {
         yawController = new PIDController(1.0f, 0.000f, 0.01f);//ki=0.001
         PoszController = new PIDController(0.15f, 0.000f, 0.05f);//ki=0.001, 映射50度到5.0输出
-        pitchController = new PIDController(0.2f, 0.00f, 0.1f);//ki=0.01
+        PosxController = new PIDController(0.3f, 0.00f, 0.1f);//ki=0.01
         // 初始化默认距离，对应进度条中值50
-        onProgressChanged(40);
+        onProgressChanged(60);
         trackingEnabled = false;
         frameWidth = 1920;
         frameHeight = 1080;
@@ -42,10 +42,10 @@ public class TrackingController {
         if (!enabled) {
             yawController.reset();
             PoszController.reset();
-            pitchController.reset();
+            PosxController.reset();
             lastYaw = 0;
             lastPosz = 0;
-            lastPitch = 0;
+            lastPosx = 0;
         }
     }
 
@@ -98,14 +98,14 @@ public class TrackingController {
         float areaRatio = (float) (targetRect.width() * targetRect.height()) / (frameWidth * frameHeight);
         float estimatedDistance = 1.0f / (float) Math.sqrt(areaRatio + 0.01f);
         float sizeError = estimatedDistance - targetDistanceRatio;
-        float pitchOutput = pitchController.compute(sizeError, deltaTime);
+        float PosxOutput = PosxController.compute(sizeError, deltaTime);
 
         // 一阶低通滤波，平滑输出指令
         lastYaw = lastYaw + clamp(ALPHA * (yawOutput - lastYaw), -5f, 5f);
         lastPosz = lastPosz + clamp(ALPHA * (PoszOutput - lastPosz), -5f, 5f);
-        lastPitch = lastPitch + clamp(ALPHA * (pitchOutput - lastPitch), -2f, 2f);
+        lastPosx = lastPosx + clamp(ALPHA * (PosxOutput - lastPosx), -1f, 1f);
 
-        DroneCommand command = new DroneCommand(lastYaw, lastPosz, lastPitch, 0, estimatedDistance);
+        DroneCommand command = new DroneCommand(lastYaw, lastPosz, lastPosx, 0, estimatedDistance);
 
         return new TrackingResult(horizontalAngle, verticalAngle, command);
     }
