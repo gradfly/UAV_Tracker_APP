@@ -56,7 +56,7 @@ public class MainActivity extends AppCompatActivity {
     private TextView trackingStatus, horizontalAngle, verticalAngle, distanceValue;
     private SeekBar distanceSlider;
     private TextView sliderValueTip;
-    private SwitchCompat switchUnlock;
+    private SwitchCompat switchUnlock, switchAutoMode;
     private Button bluetoothButton, trackingButton, switchCameraButton;
     private Button btnTurnLeft, btnForward, btnTurnRight, btnLeft, btnTakeoff, btnRight, btnUp, btnBackward, btnDown;
 
@@ -165,6 +165,34 @@ public class MainActivity extends AppCompatActivity {
                 switchUnlock.setTrackTintList(null); // 恢复默认
             }
         });
+
+        switchAutoMode.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            int visibility = isChecked ? View.INVISIBLE : View.VISIBLE;
+            btnTurnLeft.setVisibility(visibility);
+            btnForward.setVisibility(visibility);
+            btnTurnRight.setVisibility(visibility);
+            btnLeft.setVisibility(visibility);
+            btnTakeoff.setVisibility(visibility);
+            btnRight.setVisibility(visibility);
+            btnUp.setVisibility(visibility);
+            btnBackward.setVisibility(visibility);
+            btnDown.setVisibility(visibility);
+
+            if (isChecked) {
+                switchAutoMode.setText("自动");
+                int greenColor = ContextCompat.getColor(this, R.color.green);
+                switchAutoMode.setTextColor(greenColor);
+                switchAutoMode.setThumbTintList(ColorStateList.valueOf(greenColor));
+                switchAutoMode.setTrackTintList(ColorStateList.valueOf(greenColor));
+            } else {
+                switchAutoMode.setText("手动");
+                int whiteColor = ContextCompat.getColor(this, R.color.white);
+                switchAutoMode.setTextColor(whiteColor);
+                switchAutoMode.setThumbTintList(null);
+                switchAutoMode.setTrackTintList(null);
+            }
+        });
+
         btnTurnLeft.setOnClickListener(v -> sendFlightCommand(new byte[]{(byte) 0x80, (byte) 0x10}));
         btnForward.setOnClickListener(v -> sendFlightCommand(new byte[]{(byte) 0x80, (byte) 0x03}));
         btnTurnRight.setOnClickListener(v -> sendFlightCommand(new byte[]{(byte) 0x80, (byte) 0x11}));
@@ -570,6 +598,7 @@ public class MainActivity extends AppCompatActivity {
         switchCameraButton = findViewById(R.id.switchCameraButton);
 
         switchUnlock = findViewById(R.id.switch1);
+        switchAutoMode = findViewById(R.id.switch2);
 
         btnTurnLeft = findViewById(R.id.btnTurnLeft);
         btnForward = findViewById(R.id.btnForward);
