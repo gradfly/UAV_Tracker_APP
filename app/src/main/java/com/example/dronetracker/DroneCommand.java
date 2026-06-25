@@ -19,9 +19,9 @@ public class DroneCommand {
 
     public DroneCommand(float yaw, float Posz, float Posx, float roll, float estimatedDistance) {
         // 1. 处理 yaw
-        float y = applyDeadzone(yaw, 8.0f);
+        float y = applyDeadzone(yaw, 3.0f);
         if (y != 0) {
-            y = y - Math.signum(y) * 8.0f;
+            y = y - Math.signum(y) * 3.0f;
         }
         float halfFov = TrackingController.FOV_HORIZONTAL / 2.0f;
         this.yaw = clamp(y, -halfFov, halfFov);

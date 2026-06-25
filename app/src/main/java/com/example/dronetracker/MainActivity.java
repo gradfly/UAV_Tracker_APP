@@ -323,10 +323,13 @@ public class MainActivity extends AppCompatActivity {
                 if (isFinishing() || isDestroyed()) return;
                 
                 int screenWidth = getResources().getDisplayMetrics().widthPixels;
+                int sidebarWidth = (int) (60 * getResources().getDisplayMetrics().density);
+                int availableWidth = screenWidth - sidebarWidth;
+                
                 float aspect = 640.0f / 480.0f;
                 android.view.ViewGroup.LayoutParams lp = surfaceView.getLayoutParams();
-                lp.width = screenWidth;
-                lp.height = (int) (screenWidth / aspect);
+                lp.width = availableWidth;
+                lp.height = (int) (availableWidth / aspect);
                 surfaceView.setLayoutParams(lp);
                 
                 if (overlayView != null) {
@@ -496,11 +499,14 @@ public class MainActivity extends AppCompatActivity {
 
             runOnUiThread(() -> {
                 int screenWidth = getResources().getDisplayMetrics().widthPixels;
+                int sidebarWidth = (int) (60 * getResources().getDisplayMetrics().density);
+                int availableWidth = screenWidth - sidebarWidth;
+                
                 float aspect = (float) previewSize.width / previewSize.height;
 
                 android.view.ViewGroup.LayoutParams lp = surfaceView.getLayoutParams();
-                lp.width = screenWidth;
-                lp.height = (int) (screenWidth * aspect);
+                lp.width = availableWidth;
+                lp.height = (int) (availableWidth * aspect);
 
                 overlayView.setLayoutParams(lp);
                 trackingController.setFrameSize(lp.width, lp.height);
@@ -1121,7 +1127,7 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }
 
-                mainHandler.postDelayed(this, 50);
+                mainHandler.postDelayed(this, 100);
             }
         };
         mainHandler.post(trackingRunnable);

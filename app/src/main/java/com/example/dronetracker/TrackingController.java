@@ -22,7 +22,7 @@ public class TrackingController {
     private static final float ALPHA = 0.4f; // 滤波系数，0.1-1.0，越小越平滑
 
     public TrackingController() {
-        yawController = new PIDController(1.0f, 0.000f, 0.01f);//ki=0.001
+        yawController = new PIDController(0.8f, 0.000f, 0.01f);//ki=0.001
         PoszController = new PIDController(0.15f, 0.000f, 0.05f);//ki=0.001, 映射50度到5.0输出
         PosxController = new PIDController(0.3f, 0.00f, 0.1f);//ki=0.01
         // 初始化默认距离，对应进度条中值50
@@ -103,7 +103,7 @@ public class TrackingController {
         // 一阶低通滤波，平滑输出指令
         lastYaw = lastYaw + clamp(ALPHA * (yawOutput - lastYaw), -5f, 5f);
         lastPosz = lastPosz + clamp(ALPHA * (PoszOutput - lastPosz), -5f, 5f);
-        lastPosx = lastPosx + clamp(ALPHA * (PosxOutput - lastPosx), -1f, 1f);
+        lastPosx = lastPosx + clamp(ALPHA * (PosxOutput - lastPosx), -3f, 3f);
 
         DroneCommand command = new DroneCommand(lastYaw, lastPosz, lastPosx, 0, estimatedDistance);
 
