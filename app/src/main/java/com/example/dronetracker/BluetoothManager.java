@@ -6,6 +6,7 @@ import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCallback;
 import android.bluetooth.BluetoothGattCharacteristic;
+import android.bluetooth.BluetoothGattDescriptor;
 import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothProfile;
 import android.bluetooth.le.BluetoothLeScanner;
@@ -41,6 +42,7 @@ public class BluetoothManager {
     private final Handler handler;
     private OnConnectionChangeListener listener;
     private OnDeviceFoundListener scanListener;
+    private OnDataReceivedListener dataListener;
     private boolean isConnected = false;
     private boolean isScanning = false;
 
@@ -48,6 +50,11 @@ public class BluetoothManager {
         void onConnected();
         void onDisconnected();
         void onConnectionFailed();
+    }
+
+    public interface OnDataReceivedListener {
+        void onDataSent(byte[] data);
+        void onDataReceived(byte[] data);
     }
 
     public interface OnDeviceFoundListener {
@@ -65,6 +72,10 @@ public class BluetoothManager {
 
     public void setOnConnectionChangeListener(OnConnectionChangeListener listener) {
         this.listener = listener;
+    }
+
+    public void setOnDataReceivedListener(OnDataReceivedListener listener) {
+        this.dataListener = listener;
     }
 
     public boolean isBluetoothEnabled() {
@@ -160,6 +171,10 @@ public class BluetoothManager {
         writeCharacteristic.setValue(data);
         writeCharacteristic.setWriteType(BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE);
         bluetoothGatt.writeCharacteristic(writeCharacteristic);
+        
+        if (dataListener != null) {
+            dataListener.onDataSent(data);
+        }
     }
 
     private final BluetoothGattCallback gattCallback = new BluetoothGattCallback() {
@@ -193,6 +208,14 @@ public class BluetoothManager {
         public void onCharacteristicWrite(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
             if (status != BluetoothGatt.GATT_SUCCESS) {
                 Log.e(TAG, "Characteristic write failed: " + status);
+            }
+        }
+
+        @Override
+        public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
+            byte[] data = characteristic.getValue();
+            if (dataListener != null) {
+                dataListener.onDataReceived(data);
             }
         }
     };
@@ -247,6 +270,19 @@ public class BluetoothManager {
 
         if (writeCharacteristic != null) {
             isConnected = true;
+            
+            // Enable notifications for the characteristic if supported
+            int props = writeCharacteristic.getProperties();
+            if ((props & BluetoothGattCharacteristic.PROPERTY_NOTIFY) != 0) {
+                gatt.setCharacteristicNotification(writeCharacteristic, true);
+                BluetoothGattDescriptor descriptor = writeCharacteristic.getDescriptor(
+                        UUID.fromString("00002902-0000-1000-8000-00805f9b34fb"));
+                if (descriptor != null) {
+                    descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
+                    gatt.writeDescriptor(descriptor);
+                }
+            }
+
             notifyConnected();
         } else {
             Log.e(TAG, "No writable characteristic found");

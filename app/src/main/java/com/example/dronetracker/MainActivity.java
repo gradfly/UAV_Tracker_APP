@@ -53,16 +53,22 @@ public class MainActivity extends AppCompatActivity {
     private SimpleUVCCameraTextureView surfaceView;
     private Camera camera;
     private VideoOverlayView overlayView;
-    private TextView trackingStatus, horizontalAngle, verticalAngle, distanceValue;
+    private TextView trackingStatus, horizontalAngle, verticalAngle, distanceValue, hintMessage;
     private SeekBar distanceSlider;
     private TextView sliderValueTip;
     private SwitchCompat switchUnlock, switchAutoMode;
     private View manualControlLayout, joystickLayout;
     private JoystickView joystickLeft, joystickRight;
     private Button bluetoothButton, trackingButton, switchCameraButton;
+    private TextView logTextView;
+    private View logPanel;
+    private android.widget.ScrollView logScrollView;
     private Button btnTurnLeft, btnForward, btnTurnRight, btnLeft, btnTakeoff, btnRight, btnUp, btnBackward, btnDown;
 
     private ActivityResultLauncher<Intent> bluetoothEnableLauncher;
+
+    private enum ControlMode { AUTO, MANUAL }
+    private ControlMode currentControlMode = ControlMode.AUTO;
 
     private BluetoothManager bluetoothManager;
     private TrackingController trackingController;
@@ -80,6 +86,8 @@ public class MainActivity extends AppCompatActivity {
     private boolean isProcessingFrame = false;
     private boolean isFlying = false;
     private long lastFlightCommandTime = 0;
+    private long lastHintTime = 0;
+    private float curLeftX = 0, curLeftY = 0, curRightY = 0;
 
     // USB Camera members
     private UVCCameraManager mCameraHelper;
@@ -143,6 +151,16 @@ public class MainActivity extends AppCompatActivity {
         updateSliderTip(initialProgress, 10.0f - (initialProgress / 100.0f * 9.0f));
 
         bluetoothButton.setOnClickListener(v -> toggleBluetooth());
+        bluetoothButton.setOnLongClickListener(v -> {
+            if (logPanel != null) {
+                int visibility = logPanel.getVisibility() == View.VISIBLE ? View.GONE : View.VISIBLE;
+                logPanel.setVisibility(visibility);
+                if (visibility == View.VISIBLE) {
+                    Toast.makeText(this, "日志面板已开启", Toast.LENGTH_SHORT).show();
+                }
+            }
+            return true;
+        });
         trackingButton.setOnClickListener(v -> toggleTracking());
         switchCameraButton.setOnClickListener(v -> showCameraSwitchDialog());
 
@@ -180,12 +198,18 @@ public class MainActivity extends AppCompatActivity {
                 
                 manualControlLayout.setVisibility(View.INVISIBLE);
                 joystickLayout.setVisibility(View.VISIBLE);
+                currentControlMode = ControlMode.MANUAL;
+
+                if (trackingButton.getText().toString().equals(getString(R.string.tracking_enabled))) {
+                    trackingButton.performClick();
+                }
             } else {
                 switchAutoMode.setText("自动");
                 int whiteColor = ContextCompat.getColor(this, R.color.white);
                 switchAutoMode.setTextColor(whiteColor);
                 switchAutoMode.setThumbTintList(null);
                 switchAutoMode.setTrackTintList(null);
+                currentControlMode = ControlMode.AUTO;
                 
                 manualControlLayout.setVisibility(View.VISIBLE);
                 joystickLayout.setVisibility(View.GONE);
@@ -602,6 +626,7 @@ public class MainActivity extends AppCompatActivity {
         bluetoothButton = findViewById(R.id.bluetoothButton);
         trackingButton = findViewById(R.id.trackingButton);
         switchCameraButton = findViewById(R.id.switchCameraButton);
+        hintMessage = findViewById(R.id.hintMessage);
 
         switchUnlock = findViewById(R.id.switch1);
         switchAutoMode = findViewById(R.id.switch2);
@@ -621,20 +646,33 @@ public class MainActivity extends AppCompatActivity {
         joystickLeft = findViewById(R.id.joystickLeft);
         joystickRight = findViewById(R.id.joystickRight);
 
-        // 左侧摇杆：垂直方向不自动回中（控制油门/升降），默认在最下方
-        joystickLeft.setInitialPosition(0, -1);
-        joystickLeft.setAutoCenter(true, false);
+        logPanel = findViewById(R.id.logPanel);
+        logTextView = findViewById(R.id.logTextView);
+        logScrollView = findViewById(R.id.logScrollView);
+        TextView btnClearLog = findViewById(R.id.btnClearLog);
+        if (btnClearLog != null) {
+            btnClearLog.setOnClickListener(v -> {
+                if (logTextView != null) logTextView.setText("");
+            });
+        }
+
+        // 左侧摇杆：垂直方向改为自动回中，并注释掉默认状态最低点的代码
+        // joystickLeft.setInitialPosition(0, -1);
+        joystickLeft.setAutoCenter(true, true);
 
         // 美国手 Mode 2: 左手控制升降(Y)和旋转(X)
         joystickLeft.setOnJoystickChangeListener((xPercent, yPercent) -> {
-            // TODO: 处理左摇杆逻辑 (x: 旋转, y: 升降)
+            if (checkTrackingState(xPercent, yPercent)) return;
+            curLeftX = xPercent;
+            curLeftY = yPercent;
             Log.d("Joystick", "Left Stick - Yaw: " + xPercent + ", Throttle: " + yPercent);
         });
 
         // 美国手 Mode 2: 右手控制前后(Y)和左右平移(X)
         joystickRight.setOnJoystickChangeListener((xPercent, yPercent) -> {
-            // TODO: 处理右摇杆逻辑 (x: 平移, y: 前后)
-            Log.d("Joystick", "Right Stick - Roll: " + xPercent + ", Posx: " + yPercent);
+            if (checkTrackingState(xPercent, yPercent)) return;
+            curRightY = yPercent;
+            Log.d("Joystick", "Right Stick - Roll: " + xPercent + ", Pitch: " + yPercent);
         });
 
         // 设置距离滑块长度为屏幕高度的一半
@@ -691,7 +729,22 @@ public class MainActivity extends AppCompatActivity {
 
         trackingController = new TrackingController();
         yoloDetector = new YoloDetector(this);
+        
+        bluetoothManager.setOnDataReceivedListener(new BluetoothManager.OnDataReceivedListener() {
+            @Override
+            public void onDataSent(byte[] data) {
+                addLog("TX", data);
+            }
+
+            @Override
+            public void onDataReceived(byte[] data) {
+                addLog("RX", data);
+            }
+        });
+        
         mainHandler = new Handler(Looper.getMainLooper());
+        
+        startTrackingLoop();
 
         backgroundThread = new HandlerThread("VideoProcessor");
         backgroundThread.start();
@@ -1054,76 +1107,95 @@ public class MainActivity extends AppCompatActivity {
         // 屏幕坐标系 Y 向下增加，要求“以上为正”，即 viewCenterY - targetCenterY
         int pixelDY = viewCenterY - targetCenterY;
 
-        // 估算远近距离（基于目标框大小，实际应根据YOLO检测到的物体类别和已知尺寸计算）
+        // 估算远近距离
         float areaRatio = (float) (currentRect.width() * currentRect.height()) / (overlayView.getWidth() * overlayView.getHeight());
         float estimatedDistance = 1.0f / (float) Math.sqrt(areaRatio + 0.01f);
 
         runOnUiThread(() -> {
             if (result != null) {
                 DroneCommand cmd = result.command;
-                horizontalAngle.setText(String.format(java.util.Locale.CHINA, "水平距离: %d px, yaw：%d", pixelDX, (int)(cmd.getYaw()*1.5f)));
-                verticalAngle.setText(String.format(java.util.Locale.CHINA, "竖直距离: %d px, Posz：%d", pixelDY, (int)(cmd.getPosz()*estimatedDistance)));
-                distanceValue.setText(String.format(java.util.Locale.CHINA, "远近距离: %.1f, Posx：%d", estimatedDistance, (int)(cmd.getPosx()*100)));
+                horizontalAngle.setText(String.format(java.util.Locale.CHINA, "水平距离: %d px, Yaw：%d", pixelDX, (int)(cmd.getYaw()*10)));
+                verticalAngle.setText(String.format(java.util.Locale.CHINA, "竖直距离: %d px, Throttle：%d", pixelDY, (int)(cmd.getThrottle()*estimatedDistance)));
+                distanceValue.setText(String.format(java.util.Locale.CHINA, "远近距离: %.1f, Pitch：%d", estimatedDistance, (int)(cmd.getPitch()*20)));
             } else {
-                horizontalAngle.setText(String.format(java.util.Locale.CHINA, "水平距离: yaw：%d px", pixelDX));
-                verticalAngle.setText(String.format(java.util.Locale.CHINA, "竖直距离: Posz：%d px", pixelDY));
-                distanceValue.setText(String.format(java.util.Locale.CHINA, "远近距离: Posx：%.1f", estimatedDistance));
+                horizontalAngle.setText(String.format(java.util.Locale.CHINA, "水平: %d px (已暂停)", pixelDX));
+                verticalAngle.setText(String.format(java.util.Locale.CHINA, "竖直: %d px (已暂停)", pixelDY));
+                distanceValue.setText(String.format(java.util.Locale.CHINA, "距离: %.1f (已暂停)", estimatedDistance));
             }
             overlayView.setAngles(pixelDX, pixelDY);
         });
     }
 
     private void startTrackingLoop() {
-        if (trackingRunnable != null) return; // 避免重复启动
+        if (trackingRunnable != null) return;
         
         lastTime = System.currentTimeMillis();
         trackingRunnable = new Runnable() {
             @Override
             public void run() {
-                if (targetRect == null) {
-                    stopTrackingLoop();
-                    return;
-                }
-
                 long currentTime = System.currentTimeMillis();
                 float deltaTime = (currentTime - lastTime) / 1000.0f;
                 lastTime = currentTime;
 
+                // 防止 deltaTime 过大导致 PID 剧烈波动
+                if (deltaTime > 0.5f) deltaTime = 0.1f;
+
+                // 1. 获取当前目标位置
                 Rect currentRect;
                 synchronized (MainActivity.this) {
                     currentRect = targetRect;
                 }
 
-                if (currentRect != null) {
-                    // 如果不正在处理帧，则请求新帧进行实时检测更新位置
-                    if (!isProcessingFrame) {
-                        if (!useUsbCamera && camera != null) {
-                            isProcessingFrame = true;
-                            try {
-                                camera.setOneShotPreviewCallback((data, cam) -> {
-                                    backgroundHandler.post(() -> processFrameForTracking(data, cam));
-                                });
-                            } catch (Exception e) {
-                                Log.e(TAG, "Failed to set preview callback: " + e.getMessage());
-                                isProcessingFrame = false;
-                            }
+                // 2. 只有在自动模式下才进行跟踪逻辑
+                if (currentControlMode == ControlMode.AUTO && currentRect != null) {
+                    // 触发帧处理 (仅限手机摄像头，USB摄像头由监听器触发)
+                    if (!isProcessingFrame && !useUsbCamera && camera != null) {
+                        isProcessingFrame = true;
+                        try {
+                            camera.setOneShotPreviewCallback((data, cam) -> {
+                                backgroundHandler.post(() -> processFrameForTracking(data, cam));
+                            });
+                        } catch (Exception e) {
+                            isProcessingFrame = false;
                         }
-                        // USB 摄像头的帧处理由 OnPreviewFrameListener 触发，无需主动请求
                     }
 
-                    // 即使未开启无人机控制，也计算控制量以获取水平/垂直角度
+                    // 计算控制指令
                     TrackingController.TrackingResult result = trackingController.processTarget(currentRect, deltaTime);
-
-                    // 根据按钮文字决定显示控制指令还是像素距离
+                    
+                    // 更新 UI (无论蓝牙是否连接)
                     String btnText = trackingButton.getText().toString();
                     if (btnText.equals(getString(R.string.tracking_enabled))) {
                         updateTargetMetrics(result);
-                        // 只有在“跟踪中”且蓝牙连接时才发送实际指令
-                        if (isBluetoothConnected) {
-                            bluetoothManager.sendCommand(result.command);
-                        }
-                    } else if (btnText.equals("暂停跟踪")) {
+                    } else {
                         updateTargetMetrics(null);
+                    }
+
+                    // 3. 如果蓝牙已连接，发送指令
+                    if (isBluetoothConnected && bluetoothManager != null) {
+                        byte[] sendData = new byte[4];
+                        sendData[0] = (byte) 0xAA;
+                        
+                        if (btnText.equals(getString(R.string.tracking_enabled))) {
+                            byte[] cmdBytes = result.command.toBytes();
+                            System.arraycopy(cmdBytes, 1, sendData, 1, 3);
+                        }
+                        bluetoothManager.sendRawData(sendData);
+                    }
+                } else if (currentControlMode == ControlMode.MANUAL) {
+                    // 手动模式：仅在蓝牙连接时发送摇杆数据
+                    if (isBluetoothConnected && bluetoothManager != null) {
+                        byte[] sendData = new byte[4];
+                        sendData[0] = (byte) 0xAA;
+                        sendData[1] = (byte) (curLeftX * 125);
+                        sendData[2] = (byte) (curLeftY * 125);
+                        sendData[3] = (byte) (curRightY * 125);
+                        bluetoothManager.sendRawData(sendData);
+                    }
+                } else {
+                    // 自动模式但无目标，若连接则发送心跳
+                    if (isBluetoothConnected && bluetoothManager != null) {
+                        bluetoothManager.sendRawData(new byte[]{(byte) 0xAA, 0, 0, 0});
                     }
                 }
 
@@ -1227,6 +1299,33 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private void addLog(String type, byte[] data) {
+        if (logTextView == null) return;
+        
+        StringBuilder sb = new StringBuilder();
+        for (byte b : data) {
+            sb.append(String.format("%02X ", b));
+        }
+        
+        String time = new java.text.SimpleDateFormat("HH:mm:ss.SSS", java.util.Locale.getDefault()).format(new java.util.Date());
+        String logEntry = String.format("[%s] %s: %s\n", time, type, sb.toString().trim());
+        
+        runOnUiThread(() -> {
+            logTextView.append(logEntry);
+            
+            // Limit log size to prevent memory issues
+            if (logTextView.getLineCount() > 100) {
+                String fullText = logTextView.getText().toString();
+                int firstNewline = fullText.indexOf('\n');
+                if (firstNewline != -1) {
+                    logTextView.setText(fullText.substring(firstNewline + 1));
+                }
+            }
+            
+            logScrollView.post(() -> logScrollView.fullScroll(View.FOCUS_DOWN));
+        });
+    }
+
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
@@ -1280,6 +1379,36 @@ public class MainActivity extends AppCompatActivity {
                 Log.e(TAG, "Failed to unregister USB in onStop", e);
             }
         }
+    }
+
+    private void sendManualJoystickCommand() {
+        // 已整合进 startTrackingLoop
+    }
+
+    private boolean checkTrackingState(float x, float y) {
+        if (Math.abs(x) < 0.05f && Math.abs(y) < 0.05f) return false;
+
+        if (trackingButton.getText().toString().equals(getString(R.string.tracking_enabled))) {
+            showHintAnimation();
+            return true;
+        }
+        return false;
+    }
+
+    private void showHintAnimation() {
+        if (System.currentTimeMillis() - lastHintTime < 2000) return;
+        lastHintTime = System.currentTimeMillis();
+
+        runOnUiThread(() -> {
+            hintMessage.setVisibility(View.VISIBLE);
+            hintMessage.setAlpha(1.0f);
+            hintMessage.animate()
+                    .alpha(0.0f)
+                    .setDuration(1000)
+                    .setStartDelay(1000)
+                    .withEndAction(() -> hintMessage.setVisibility(View.GONE))
+                    .start();
+        });
     }
 
     @Override
